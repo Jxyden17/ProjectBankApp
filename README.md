@@ -141,6 +141,21 @@ npm run dev
 
 Open the Vite app in the browser and the frontend will send `/api` requests through the Vite proxy to `http://localhost:8080`.
 
+## CI pipeline
+
+The repository uses GitHub Actions with the workflow file:
+
+- `.github/workflows/ci.yml`
+
+Current CI jobs:
+- `backend`: runs `./mvnw test` in `backend/api`
+- `frontend`: runs `npm ci` and `npm run build` in `frontend`
+
+Important backend CI notes:
+- The workflow includes `chmod +x ./mvnw` because GitHub Actions runs on Linux and the Maven wrapper must be executable there.
+- The backend integration tests use H2 and depend on the SQL init files in `backend/api/src/main/resources/schema.sql` and `backend/api/src/main/resources/data.sql`.
+- If those SQL files do not match the JPA entity model, CI will fail with table or seed-data errors.
+
 ## Current status
 
 - The project has a working frontend shell with a navbar and routed pages.

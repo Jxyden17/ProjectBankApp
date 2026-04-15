@@ -66,6 +66,18 @@ Build for production:
 npm run build
 ```
 
+## CI
+
+The frontend is part of the GitHub Actions pipeline in:
+
+- `.github/workflows/ci.yml`
+
+The frontend CI job currently does:
+- `npm ci`
+- `npm run build`
+
+There is no dedicated frontend test script yet, so the production build is the current CI check for frontend changes.
+
 ## API routing
 
 In local Vite development, `/api` is proxied to:

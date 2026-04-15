@@ -73,6 +73,11 @@ The backend reads these environment variables:
 
 Default local fallback values exist in the properties file, but in practice the project is meant to be run through Docker Compose or with explicit environment configuration.
 
+For local and CI tests:
+- `src/test/resources/application.properties` switches the datasource to H2
+- `src/main/resources/schema.sql` creates the `example_users` table
+- `src/main/resources/data.sql` seeds the example users used by the functional tests
+
 ## Running locally
 
 ### Run the application
@@ -113,6 +118,25 @@ The project currently has:
 - `ApiApplicationTests` for application context loading
 
 This matches the project goal of having both unit tests and higher-level functional coverage.
+
+## CI
+
+The backend is part of the GitHub Actions pipeline in:
+
+- `.github/workflows/ci.yml`
+
+The CI backend job:
+- checks out the repository
+- installs Java 21
+- runs `chmod +x ./mvnw`
+- runs `./mvnw test`
+
+The `chmod` step is needed because the CI runner is Linux-based. Without it, the Maven wrapper can fail with `Permission denied`.
+
+If CI fails with H2 errors such as `Table "example_users" not found`, check these files first:
+- `src/main/resources/schema.sql`
+- `src/main/resources/data.sql`
+- `src/test/resources/application.properties`
 
 ## Notes for teammates
 
