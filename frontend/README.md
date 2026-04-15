@@ -1,5 +1,112 @@
-# Vue 3 + Vite
+# Frontend
 
-This template should help get you started developing with Vue 3 in Vite. The template uses Vue 3 `<script setup>` SFCs, check out the [script setup docs](https://v3.vuejs.org/api/sfc-script-setup.html#sfc-script-setup) to learn more.
+This module contains the Vue frontend for ProjectBankApp.
 
-Learn more about IDE Support for Vue in the [Vue Docs Scaling up Guide](https://vuejs.org/guide/scaling-up/tooling.html#ide-support).
+## Stack
+
+- Vue 3
+- Vue Router
+- Tailwind CSS
+- Vite
+- Nginx in the production Docker image
+
+## What is currently implemented
+
+- A reusable navbar component
+- Vue Router pages for:
+  - `/`
+  - `/accounts`
+  - `/transfers`
+  - `/login`
+- A minimal home page that acts as a live API test page for the backend example user endpoints
+- Tailwind-based styling instead of the default Vite starter UI
+
+## Folder structure
+
+Main frontend files:
+
+- `src/main.js` mounts the Vue app and router
+- `src/App.vue` contains the app shell
+- `src/router/index.js` defines the routes
+- `src/components/organisms/AppNavbar.vue` contains the navbar
+- `src/components/pages/HomePage.vue` contains the live API test page
+- `src/components/pages/AccountsPage.vue` is a placeholder page
+- `src/components/pages/TransfersPage.vue` is a placeholder page
+- `src/components/pages/LoginPage.vue` is a placeholder page
+- `src/config.js` contains the example API endpoint path
+- `public/favicon.ico` is the site favicon
+
+## Home page API test
+
+The home page is intentionally simple. It is meant to help development, not act like a finished landing page.
+
+It currently supports:
+- `GET /api/users`
+- `POST /api/users`
+
+The page prints the JSON response directly so teammates can quickly check whether the backend is reachable and returning the expected data.
+
+## Running locally
+
+Install dependencies:
+
+```bash
+npm install
+```
+
+Start the Vite dev server:
+
+```bash
+npm run dev
+```
+
+Build for production:
+
+```bash
+npm run build
+```
+
+## API routing
+
+In local Vite development, `/api` is proxied to:
+
+```text
+http://localhost:8080
+```
+
+In Docker, Nginx also proxies `/api` to the backend container. This means frontend code can keep using relative `/api/...` paths in both environments.
+
+## Using `npm run dev` with the Docker backend
+
+You can run the frontend locally with Vite and still use the backend API if the backend container is running and publishing port `8080`.
+
+Example workflow from the project root:
+
+Remote database mode:
+
+```bash
+docker compose up backend
+```
+
+Local database mode:
+
+```bash
+docker compose --env-file .env.local -f docker-compose.yml -f docker-compose.local.yml up backend db phpmyadmin
+```
+
+Then in the `frontend` folder:
+
+```bash
+npm run dev
+```
+
+This gives you:
+- Vite hot reload for frontend work
+- backend API access through `/api`
+- the same relative API paths in dev and Docker
+
+## Notes for teammates
+
+- `Accounts`, `Transfers`, and `Login` are placeholder routes for now.
+- The current home page is a developer-facing test page, not final product UI.
+- When you connect more backend features, keep using the routed page structure instead of putting everything in `App.vue`.
