@@ -1,9 +1,8 @@
 import { computed, reactive, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import * as userService from '../services/userService'
 
 const formatJson = (value) => JSON.stringify(value, null, 2)
-
-const INITIAL_RESPONSE = formatJson({ message: 'No request sent yet.' })
 
 const DEFAULT_FORM = {
   firstName: 'Jane',
@@ -12,11 +11,13 @@ const DEFAULT_FORM = {
 }
 
 export const useUsers = () => {
+  const { t } = useI18n()
+
   const form = reactive({ ...DEFAULT_FORM })
 
   const isLoading = ref(false)
   const isCreating = ref(false)
-  const responseBody = ref(INITIAL_RESPONSE)
+  const responseBody = ref(formatJson({ message: t('home.response.initial') }))
   const feedbackMessage = ref('')
   const feedbackTone = ref('success')
   const lastRequest = ref('idle')
@@ -24,7 +25,7 @@ export const useUsers = () => {
   const responseLabel = computed(() => {
     if (lastRequest.value === 'get') return 'GET /api/users'
     if (lastRequest.value === 'post') return 'POST /api/users'
-    return 'Waiting'
+    return t('common.waiting')
   })
 
   const run = async (requestType, fn, successMessage) => {
@@ -38,14 +39,14 @@ export const useUsers = () => {
       feedbackMessage.value = successMessage
     } catch (error) {
       feedbackTone.value = 'error'
-      feedbackMessage.value = error.message ?? 'Request failed.'
+      feedbackMessage.value = error.message ?? t('home.response.errorFallback')
       responseBody.value = formatJson(error.data ?? { error: feedbackMessage.value })
     }
   }
 
   const loadUsers = async () => {
     isLoading.value = true
-    await run('get', userService.getUsers, 'Loaded example users successfully.')
+    await run('get', userService.getUsers, t('home.response.successGet'))
     isLoading.value = false
   }
 
@@ -58,7 +59,7 @@ export const useUsers = () => {
         lastName: form.lastName,
         email: form.email,
       }),
-      'Created example user successfully.',
+      t('home.response.successPost'),
     )
     isCreating.value = false
   }

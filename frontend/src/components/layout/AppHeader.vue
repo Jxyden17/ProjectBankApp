@@ -6,8 +6,8 @@
           PB
         </span>
         <div>
-          <p class="text-xs font-semibold uppercase tracking-[0.35em] text-emerald-600">Project Bank</p>
-          <p class="text-sm font-medium text-slate-600">Student demo application</p>
+          <p class="text-xs font-semibold uppercase tracking-[0.35em] text-emerald-600">{{ $t('brand.name') }}</p>
+          <p class="text-sm font-medium text-slate-600">{{ $t('brand.tagline') }}</p>
         </div>
       </RouterLink>
 
@@ -21,28 +21,34 @@
             ? 'bg-slate-950 text-white shadow-sm'
             : 'text-slate-600 hover:bg-slate-100 hover:text-slate-950'"
         >
-          {{ link.label }}
+          {{ $t(link.labelKey) }}
         </RouterLink>
       </div>
 
-      <RouterLink to="/login">
-        <Button variant="primary">Sign in</Button>
-      </RouterLink>
+      <div class="flex items-center gap-3">
+        <LanguageSwitcher class="hidden sm:flex" />
+        <RouterLink to="/login">
+          <Button variant="primary">{{ $t('nav.signIn') }}</Button>
+        </RouterLink>
+      </div>
     </nav>
 
     <div class="border-t border-slate-200/80 px-4 py-3 md:hidden">
-      <div class="flex flex-wrap gap-2">
-        <RouterLink
-          v-for="link in links"
-          :key="link.to"
-          :to="link.to"
-          class="rounded-full px-3 py-2 text-sm font-medium transition"
-          :class="isActive(link.to)
-            ? 'bg-slate-950 text-white'
-            : 'bg-white text-slate-600 ring-1 ring-slate-200 hover:text-slate-950'"
-        >
-          {{ link.label }}
-        </RouterLink>
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <div class="flex flex-wrap gap-2">
+          <RouterLink
+            v-for="link in links"
+            :key="link.to"
+            :to="link.to"
+            class="rounded-full px-3 py-2 text-sm font-medium transition"
+            :class="isActive(link.to)
+              ? 'bg-slate-950 text-white'
+              : 'bg-white text-slate-600 ring-1 ring-slate-200 hover:text-slate-950'"
+          >
+            {{ $t(link.labelKey) }}
+          </RouterLink>
+        </div>
+        <LanguageSwitcher class="sm:hidden" />
       </div>
     </div>
   </header>
@@ -51,14 +57,15 @@
 <script setup>
 import { useRoute } from 'vue-router'
 import Button from '../ui/Button.vue'
+import LanguageSwitcher from '../ui/LanguageSwitcher.vue'
 
 defineProps({
   links: {
     type: Array,
     default: () => [
-      { label: 'Home', to: '/' },
-      { label: 'Accounts', to: '/accounts' },
-      { label: 'Transfers', to: '/transfers' },
+      { labelKey: 'nav.home', to: '/' },
+      { labelKey: 'nav.accounts', to: '/accounts' },
+      { labelKey: 'nav.transfers', to: '/transfers' },
     ],
   },
 })

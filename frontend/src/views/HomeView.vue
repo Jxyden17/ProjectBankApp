@@ -1,8 +1,11 @@
 <template>
   <section class="mx-auto max-w-4xl space-y-8">
-    <PageHeader label="API Test" title="Example users endpoint">
-      Use this page to test the backend at
-      <code class="rounded bg-slate-200 px-2 py-1 text-slate-900">{{ usersEndpoint }}</code>.
+    <PageHeader :label="$t('home.label')" :title="$t('home.title')">
+      <i18n-t keypath="home.description" tag="span">
+        <template #endpoint>
+          <code class="rounded bg-slate-200 px-2 py-1 text-slate-900">{{ usersEndpoint }}</code>
+        </template>
+      </i18n-t>
     </PageHeader>
 
     <div class="grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
@@ -10,34 +13,34 @@
         <article class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
           <div class="flex items-center justify-between gap-4">
             <div>
-              <p class="text-xs font-semibold uppercase tracking-[0.28em] text-slate-500">GET</p>
-              <h2 class="mt-2 text-xl font-semibold text-slate-950">Load users</h2>
+              <p class="text-xs font-semibold uppercase tracking-[0.28em] text-slate-500">{{ $t('home.loadCard.method') }}</p>
+              <h2 class="mt-2 text-xl font-semibold text-slate-950">{{ $t('home.loadCard.title') }}</h2>
             </div>
             <Button :disabled="isLoading" @click="loadUsers">
-              {{ isLoading ? 'Loading...' : 'Load users' }}
+              {{ isLoading ? $t('common.loading') : $t('home.loadCard.button') }}
             </Button>
           </div>
           <p class="mt-4 text-sm leading-6 text-slate-600">
-            Fetch the current example users from the Spring backend.
+            {{ $t('home.loadCard.description') }}
           </p>
         </article>
 
         <article class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
           <div>
-            <p class="text-xs font-semibold uppercase tracking-[0.28em] text-slate-500">POST</p>
-            <h2 class="mt-2 text-xl font-semibold text-slate-950">Create user</h2>
+            <p class="text-xs font-semibold uppercase tracking-[0.28em] text-slate-500">{{ $t('home.createCard.method') }}</p>
+            <h2 class="mt-2 text-xl font-semibold text-slate-950">{{ $t('home.createCard.title') }}</h2>
           </div>
 
           <form class="mt-5 space-y-4" @submit.prevent="createUser">
-            <TextInput v-model="form.firstName" label="First name" required />
-            <TextInput v-model="form.lastName" label="Last name" required />
-            <TextInput v-model="form.email" label="Email" type="email" required />
+            <TextInput v-model="form.firstName" :label="$t('home.form.firstName')" required />
+            <TextInput v-model="form.lastName" :label="$t('home.form.lastName')" required />
+            <TextInput v-model="form.email" :label="$t('home.form.email')" type="email" required />
 
             <div class="flex flex-wrap gap-3">
               <Button type="submit" variant="success" :disabled="isCreating">
-                {{ isCreating ? 'Creating...' : 'Create user' }}
+                {{ isCreating ? $t('common.creating') : $t('home.createCard.button') }}
               </Button>
-              <Button variant="secondary" @click="resetForm">Reset</Button>
+              <Button variant="secondary" @click="resetForm">{{ $t('common.reset') }}</Button>
             </div>
           </form>
         </article>
@@ -46,8 +49,8 @@
       <article class="rounded-3xl border border-slate-200 bg-slate-950 p-6 text-white shadow-sm">
         <div class="flex items-center justify-between gap-4">
           <div>
-            <p class="text-xs font-semibold uppercase tracking-[0.28em] text-emerald-300">Response</p>
-            <h2 class="mt-2 text-xl font-semibold">Latest result</h2>
+            <p class="text-xs font-semibold uppercase tracking-[0.28em] text-emerald-300">{{ $t('home.response.label') }}</p>
+            <h2 class="mt-2 text-xl font-semibold">{{ $t('home.response.title') }}</h2>
           </div>
           <span class="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-medium text-slate-300">
             {{ responseLabel }}

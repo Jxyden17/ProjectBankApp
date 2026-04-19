@@ -1,0 +1,75 @@
+{
+  "brand": {
+    "name": "Project Bank",
+    "tagline": "Student demo application"
+  },
+  "nav": {
+    "home": "Home",
+    "accounts": "Accounts",
+    "transfers": "Transfers",
+    "signIn": "Sign in"
+  },
+  "common": {
+    "loading": "Loading...",
+    "creating": "Creating...",
+    "reset": "Reset",
+    "continue": "Continue",
+    "waiting": "Waiting",
+    "language": "Language"
+  },
+  "footer": {
+    "copyright": "\u00a9 {year} {brand} \u00b7 {tagline}"
+  },
+  "home": {
+    "label": "API Test",
+    "title": "Example users endpoint",
+    "description": "Use this page to test the backend at {endpoint}.",
+    "loadCard": {
+      "method": "GET",
+      "title": "Load users",
+      "description": "Fetch the current example users from the Spring backend.",
+      "button": "Load users"
+    },
+    "createCard": {
+      "method": "POST",
+      "title": "Create user",
+      "button": "Create user"
+    },
+    "form": {
+      "firstName": "First name",
+      "lastName": "Last name",
+      "email": "Email"
+    },
+    "response": {
+      "label": "Response",
+      "title": "Latest result",
+      "initial": "No request sent yet.",
+      "successGet": "Loaded example users successfully.",
+      "successPost": "Created example user successfully.",
+      "errorFallback": "Request failed.",
+      "errorWithStatus": "Request failed with status {status}"
+    }
+  },
+  "accounts": {
+    "label": "Accounts",
+    "title": "Accounts overview",
+    "description": "This is a placeholder page for account balances, account types, and transaction history. The navbar link is already wired through Vue Router and ready for real API data."
+  },
+  "transfers": {
+    "label": "Transfers",
+    "title": "Transfer funds",
+    "description": "This route is ready for a transfer form with source account selection, IBAN fields, amount validation, and a call to the backend transfer endpoint."
+  },
+  "login": {
+    "label": "Authentication",
+    "title": "Sign in",
+    "description": "This placeholder page is ready for your future login form, token storage, and authenticated route handling.",
+    "emailLabel": "Email",
+    "passwordLabel": "Password",
+    "continueButton": "Continue"
+  },
+  "languages": {
+    "en-GB": "English (UK)",
+    "nl-NL": "Nederlands"
+  }
+}
