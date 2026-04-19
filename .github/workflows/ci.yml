@@ -28,7 +28,19 @@ jobs:
         run: chmod +x ./mvnw
 
       - name: Run backend tests
+        id: backend_tests
         run: ./mvnw test
+
+      - name: Print backend test summary
+        if: always()
+        run: |
+          echo "Backend test step outcome: ${{ steps.backend_tests.outcome }}"
+          if [ -d target/surefire-reports ]; then
+            echo "Surefire summaries:"
+            grep -H "Tests run:" target/surefire-reports/*.txt || true
+          else
+            echo "No Surefire reports directory was generated."
+          fi
 
   frontend:
     runs-on: ubuntu-latest
