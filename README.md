@@ -5,7 +5,11 @@ ProjectBankApp is a student banking demo with:
 - a Vue 3 frontend in `frontend`
 - Docker Compose setups for a remote database flow and a local MariaDB flow
 
-The repository currently includes one example backend feature, `User`, and a frontend home page that can call the example API directly.
+The current implementation focuses on authentication and gated customer onboarding:
+- customer registration
+- JWT-based login and `/users/me`
+- refresh token rotation via HttpOnly cookie
+- frontend route gating for unapproved customers
 
 ## Repository layout
 
@@ -33,6 +37,12 @@ docker compose up --build
 ```
 
 The remote database requires TLS, so the JDBC URL in `.env` includes `sslMode=trust`.
+
+Demo accounts on the online database:
+- customer: `user@test.nl` / `Welkom123`
+- employee: `employee@test.nl` / `Welkom123`
+
+These credentials apply to the remote environment backed by `.env`. They are not created automatically in the local Docker database or in the backend test suite.
 
 ### Local mode
 
@@ -65,12 +75,14 @@ The backend uses a package-by-layer structure:
 
 All public API routes are prefixed globally with `/api`.
 
-Current example endpoints:
-- `GET /api/users`
-- `GET /api/users/{id}`
-- `POST /api/users`
+Currently implemented endpoints:
+- `POST /api/auth/register`
+- `POST /api/auth/login`
+- `POST /api/auth/refresh`
+- `POST /api/auth/logout`
+- `GET /api/users/me`
 
-There are unit tests for controller and service logic, a functional controller test, and a repository test under `backend/api/src/test/java`.
+The backend test suite uses H2 and creates its own test users inside the tests instead of depending on shared app-level seed data.
 
 ### Frontend
 
@@ -85,10 +97,13 @@ Current routes:
 - `/accounts`
 - `/transfers`
 - `/login`
+- `/register`
 
-The home page is intentionally minimal and acts as a small API playground for:
-- `GET /api/users`
-- `POST /api/users`
+The frontend is now authentication-aware:
+- `/login` and `/register` are public
+- `/accounts` and `/transfers` require authentication
+- unapproved customers are restricted to `/`
+- approved customers and employees keep access to the protected routes
 
 ## Running parts separately
 
@@ -158,9 +173,9 @@ Important backend CI notes:
 
 ## Current status
 
-- The project has a working frontend shell with a navbar and routed pages.
-- The backend has a working example `User` feature with controller, service, repository, DTO, and JPA entity layers.
-- The backend is still an example foundation, not a finished banking domain yet.
+- The frontend has a working auth shell with login, registration, session restore, and approval-aware navigation.
+- The backend has a working auth slice with registration validation, login, refresh rotation, logout, and current-user lookup.
+- Approval management, account APIs, and transfer APIs are still not implemented in the running backend.
 
 For more detail, see:
 - [backend/api/README.md](backend/api/README.md)

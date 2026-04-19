@@ -1,88 +1,94 @@
 <template>
   <section class="mx-auto max-w-4xl space-y-8">
-    <PageHeader :label="$t('home.label')" :title="$t('home.title')">
-      <i18n-t keypath="home.description" tag="span">
-        <template #endpoint>
-          <code class="rounded bg-slate-200 px-2 py-1 text-slate-900">{{ usersEndpoint }}</code>
-        </template>
-      </i18n-t>
-    </PageHeader>
+    <PageHeader
+      :label="$t('home.label')"
+      :title="$t('home.title', { name: firstName })"
+      :description="heroDescription"
+    />
 
-    <div class="grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
-      <div class="space-y-6">
-        <article class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <div class="flex items-center justify-between gap-4">
-            <div>
-              <p class="text-xs font-semibold uppercase tracking-[0.28em] text-slate-500">{{ $t('home.loadCard.method') }}</p>
-              <h2 class="mt-2 text-xl font-semibold text-slate-950">{{ $t('home.loadCard.title') }}</h2>
-            </div>
-            <Button :disabled="isLoading" @click="loadUsers">
-              {{ isLoading ? $t('common.loading') : $t('home.loadCard.button') }}
-            </Button>
+    <div class="grid gap-6 md:grid-cols-2">
+      <article class="rounded-[2rem] border border-slate-200 bg-white p-8 shadow-[0_20px_60px_-40px_rgba(15,23,42,0.28)]">
+        <p class="text-xs font-semibold uppercase tracking-[0.28em] text-emerald-600">
+          {{ $t('home.summaryLabel') }}
+        </p>
+        <h2 class="mt-3 text-2xl font-semibold text-slate-950">
+          {{ auth.currentUserName.value }}
+        </h2>
+        <p class="mt-3 text-sm leading-6 text-slate-600">
+          {{ summaryDescription }}
+        </p>
+
+        <dl class="mt-6 space-y-4 text-sm">
+          <div class="flex items-center justify-between gap-4 rounded-2xl bg-slate-50 px-4 py-3">
+            <dt class="font-medium text-slate-500">{{ $t('home.roleLabel') }}</dt>
+            <dd class="font-semibold text-slate-900">{{ auth.currentUser.value?.role ?? '-' }}</dd>
           </div>
-          <p class="mt-4 text-sm leading-6 text-slate-600">
-            {{ $t('home.loadCard.description') }}
-          </p>
-        </article>
-
-        <article class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <div>
-            <p class="text-xs font-semibold uppercase tracking-[0.28em] text-slate-500">{{ $t('home.createCard.method') }}</p>
-            <h2 class="mt-2 text-xl font-semibold text-slate-950">{{ $t('home.createCard.title') }}</h2>
+          <div class="flex items-center justify-between gap-4 rounded-2xl bg-slate-50 px-4 py-3">
+            <dt class="font-medium text-slate-500">{{ $t('home.statusLabel') }}</dt>
+            <dd class="font-semibold" :class="approvalTone">
+              {{ approvalLabel }}
+            </dd>
           </div>
+        </dl>
+      </article>
 
-          <form class="mt-5 space-y-4" @submit.prevent="createUser">
-            <TextInput v-model="form.firstName" :label="$t('home.form.firstName')" required />
-            <TextInput v-model="form.lastName" :label="$t('home.form.lastName')" required />
-            <TextInput v-model="form.email" :label="$t('home.form.email')" type="email" required />
+      <article class="rounded-[2rem] border border-slate-200 bg-slate-950 p-8 text-white shadow-[0_20px_60px_-40px_rgba(15,23,42,0.4)]">
+        <p class="text-xs font-semibold uppercase tracking-[0.28em] text-emerald-300">
+          {{ $t('home.nextLabel') }}
+        </p>
+        <h2 class="mt-3 text-2xl font-semibold">{{ nextTitle }}</h2>
+        <p class="mt-3 text-sm leading-6 text-slate-300">
+          {{ nextDescription }}
+        </p>
 
-            <div class="flex flex-wrap gap-3">
-              <Button type="submit" variant="success" :disabled="isCreating">
-                {{ isCreating ? $t('common.creating') : $t('home.createCard.button') }}
-              </Button>
-              <Button variant="secondary" @click="resetForm">{{ $t('common.reset') }}</Button>
-            </div>
-          </form>
-        </article>
-      </div>
-
-      <article class="rounded-3xl border border-slate-200 bg-slate-950 p-6 text-white shadow-sm">
-        <div class="flex items-center justify-between gap-4">
-          <div>
-            <p class="text-xs font-semibold uppercase tracking-[0.28em] text-emerald-300">{{ $t('home.response.label') }}</p>
-            <h2 class="mt-2 text-xl font-semibold">{{ $t('home.response.title') }}</h2>
-          </div>
-          <span class="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-medium text-slate-300">
-            {{ responseLabel }}
-          </span>
+        <div v-if="!auth.isRestrictedCustomer.value" class="mt-6 flex flex-wrap gap-3">
+          <RouterLink
+            to="/accounts"
+            class="rounded-full bg-white px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-slate-100"
+          >
+            {{ $t('nav.accounts') }}
+          </RouterLink>
+          <RouterLink
+            to="/transfers"
+            class="rounded-full border border-white/15 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/10"
+          >
+            {{ $t('nav.transfers') }}
+          </RouterLink>
         </div>
-
-        <FeedbackBanner class="mt-5" :message="feedbackMessage" :tone="feedbackTone" />
-
-        <pre class="mt-5 min-h-80 overflow-x-auto rounded-2xl bg-black/30 p-4 text-sm leading-6 text-slate-200">{{ responseBody }}</pre>
       </article>
     </div>
   </section>
 </template>
 
 <script setup>
+import { computed } from 'vue'
+import { RouterLink } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import PageHeader from '../components/ui/PageHeader.vue'
-import Button from '../components/ui/Button.vue'
-import TextInput from '../components/ui/TextInput.vue'
-import FeedbackBanner from '../components/ui/FeedbackBanner.vue'
-import { usersEndpoint } from '../services/userService'
-import { useUsers } from '../composables/useUsers'
+import { useAuth } from '../composables/useAuth'
 
-const {
-  form,
-  isLoading,
-  isCreating,
-  responseBody,
-  feedbackMessage,
-  feedbackTone,
-  responseLabel,
-  loadUsers,
-  createUser,
-  resetForm,
-} = useUsers()
+const auth = useAuth()
+const { t } = useI18n()
+
+const firstName = computed(() => auth.currentUser.value?.firstName ?? '')
+const heroDescription = computed(() =>
+  auth.isRestrictedCustomer.value ? t('home.descriptionPending') : t('home.description'),
+)
+const summaryDescription = computed(() =>
+  auth.isRestrictedCustomer.value
+    ? t('home.summaryDescriptionPending')
+    : t('home.summaryDescription'),
+)
+const approvalLabel = computed(() =>
+  auth.currentUser.value?.approved ? t('home.statusApproved') : t('home.statusPending'),
+)
+const approvalTone = computed(() =>
+  auth.currentUser.value?.approved ? 'text-emerald-700' : 'text-amber-700',
+)
+const nextTitle = computed(() =>
+  auth.isRestrictedCustomer.value ? t('home.nextTitlePending') : t('home.nextTitle'),
+)
+const nextDescription = computed(() =>
+  auth.isRestrictedCustomer.value ? t('home.nextDescriptionPending') : t('home.nextDescription'),
+)
 </script>

@@ -8,6 +8,8 @@ This module contains the Spring Boot backend for ProjectBankApp.
 - Spring Boot 4
 - Spring Web MVC
 - Spring Data JPA
+- Spring Security
+- Jakarta Bean Validation
 - MariaDB driver
 - H2 for tests
 - JUnit with Spring Boot test support
@@ -34,33 +36,49 @@ The matching test structure lives under `src/test/java/nl/donniebankoebarkie/api
 - Controllers return DTOs instead of exposing entities directly
 - `Location` headers for created resources are built from the current request path
 
-Current example controller:
-- `GET /api/users`
-- `GET /api/users/{id}`
-- `POST /api/users`
+Currently implemented endpoints:
+- `POST /api/auth/register`
+- `POST /api/auth/login`
+- `POST /api/auth/refresh`
+- `POST /api/auth/logout`
+- `GET /api/users/me`
 
-Example request body for `POST /api/users`:
+Example request body for `POST /api/auth/register`:
 
 ```json
 {
   "firstName": "Jane",
   "lastName": "Doe",
-  "email": "jane.doe@example.com"
+  "email": "jane.doe@example.com",
+  "password": "Welkom123",
+  "phoneNumber": "+31612345678",
+  "bsnNumber": "123456789"
 }
 ```
 
-## Example User flow
+## Auth flow
 
-The sample feature is centered on the `User` entity:
+The current backend slice is centered on authentication and the authenticated user profile:
 
-- `controller/UserController.java` handles the HTTP routes
-- `service/interfaces/IUserService.java` defines the service contract
-- `service/UserService.java` contains the business logic
-- `repository/interfaces/IUserRepository.java` defines the app-level repository contract
-- `repository/UserRepository.java` wraps the JPA repository
-- `repository/interfaces/IUserJpaRepository.java` extends `JpaRepository`
-- `model/User.java` maps to the `example_users` table
-- `dto/UserRequest.java` and `dto/UserResponse.java` separate input/output from the entity
+- `controller/AuthController.java` handles registration, login, refresh, and logout
+- `controller/UserController.java` exposes `/users/me`
+- `service/AuthService.java` contains the auth business logic
+- `repository/AuthRepository.java` and `RefreshTokenRepository.java` handle persistence
+- `model/User.java` maps authenticated users
+- `model/RefreshToken.java` stores hashed refresh tokens
+- `security/JwtService.java` and `security/JwtAuthenticationFilter.java` handle JWT creation and request authentication
+
+Registration behavior:
+- registration always creates a `CUSTOMER`
+- new customers are created with `approved = false`
+- duplicate email and BSN are rejected
+- no bank accounts are created during registration
+- passwords are validated at the request boundary
+
+Login behavior:
+- successful login returns a short-lived bearer token in JSON
+- refresh token rotation is handled through an HttpOnly cookie
+- in the `prod` profile the refresh cookie is marked `Secure`
 
 ## Configuration
 
@@ -75,8 +93,9 @@ Default local fallback values exist in the properties file, but in practice the 
 
 For local and CI tests:
 - `src/test/resources/application.properties` switches the datasource to H2
-- `src/main/resources/schema.sql` creates the `example_users` table
-- `src/main/resources/data.sql` seeds the example users used by the functional tests
+- `src/main/resources/schema.sql` creates the `users` and `refresh_tokens` tables
+- `src/main/resources/data.sql` is intentionally minimal
+- functional tests create their own users instead of relying on shared application seed data
 
 ## Running locally
 
@@ -111,13 +130,14 @@ Windows PowerShell:
 ## Test structure
 
 The project currently has:
-- `UserControllerTest` for controller unit tests
-- `UserServiceTest` for service unit tests
-- `UserControllerFunctionalTest` for functional API testing
-- `UserRepositoryTest` for repository persistence coverage
+- `AuthControllerTest` for controller unit tests
+- `AuthControllerFunctionalTest` for auth flow functional coverage
+- `AuthControllerProductionCookieFunctionalTest` for prod-only secure cookie behavior
+- `AuthServiceTest` for service unit tests
+- `UserControllerFunctionalTest` for authenticated `/users/me` access rules
 - `ApiApplicationTests` for application context loading
 
-This matches the project goal of having both unit tests and higher-level functional coverage.
+This matches the current auth-first backend slice with both unit and higher-level functional coverage.
 
 ## CI
 
@@ -133,13 +153,13 @@ The CI backend job:
 
 The `chmod` step is needed because the CI runner is Linux-based. Without it, the Maven wrapper can fail with `Permission denied`.
 
-If CI fails with H2 errors such as `Table "example_users" not found`, check these files first:
+If CI fails with H2 schema or auth test errors, check these files first:
 - `src/main/resources/schema.sql`
 - `src/main/resources/data.sql`
 - `src/test/resources/application.properties`
 
 ## Notes for teammates
 
-- The backend is currently a scaffolded example, not a full banking domain yet.
-- `User` is the reference feature for how future modules such as accounts or transactions should be structured.
+- The backend currently implements authentication and current-user retrieval, not the full banking domain yet.
+- Several resources described in `OpenAPI.yml` are planned but not implemented yet.
 - If you add a new feature, follow the same layer split and keep public endpoints under `/api`.
