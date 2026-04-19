@@ -1,0 +1,1423 @@
+openapi: 3.0.3
+info:
+  title: Banking Application API
+  version: 2.3.0
+  description: |
+    REST API for a banking application with:
+    - JWT authentication
+    - customer registration and login
+    - employee approval workflow
+    - account management
+    - transfers, deposits, and withdrawals
+    - transaction history and filtering
+    - short-lived JWT access tokens
+    - refresh token rotation via secure HttpOnly cookie
+    - JSON request and response bodies
+    - pagination support for collection endpoints
+
+servers:
+  - url: http://localhost:8080/api
+    description: Local development server
+  - url: https://bankapp.jxyden.dev/api
+    description: Online host for the application and API
+
+tags:
+  - name: Auth
+  - name: Users
+  - name: Customers
+  - name: Accounts
+  - name: Transactions
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    ErrorResponse:
+      type: object
+      required:
+        - timestamp
+        - status
+        - error
+        - message
+        - path
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+        status:
+          type: integer
+          example: 400
+        error:
+          type: string
+          example: Bad Request
+        message:
+          type: string
+          example: Validation failed
+        path:
+          type: string
+          example: /api/auth/register
+
+    ResourceLinks:
+      type: object
+      properties:
+        self:
+          type: string
+          example: /accounts/1001
+        first:
+          type: string
+          nullable: true
+          example: /transactions?page=0&size=20
+        prev:
+          type: string
+          nullable: true
+          example: /transactions?page=1&size=20
+        next:
+          type: string
+          nullable: true
+          example: /transactions?page=3&size=20
+        last:
+          type: string
+          nullable: true
+          example: /transactions?page=9&size=20
+
+    PageMetadata:
+      type: object
+      required:
+        - page
+        - size
+        - totalElements
+        - totalPages
+      properties:
+        page:
+          type: integer
+          example: 0
+        size:
+          type: integer
+          example: 20
+        totalElements:
+          type: integer
+          format: int64
+          example: 143
+        totalPages:
+          type: integer
+          example: 8
+
+    RegisterRequest:
+      type: object
+      required:
+        - firstName
+        - lastName
+        - email
+        - password
+        - phoneNumber
+        - bsnNumber
+      properties:
+        firstName:
+          type: string
+          example: John
+        lastName:
+          type: string
+          example: Doe
+        email:
+          type: string
+          format: email
+          example: john.doe@example.com
+        password:
+          type: string
+          format: password
+          example: SecurePassword123!
+        phoneNumber:
+          type: string
+          example: "+31612345678"
+        bsnNumber:
+          type: string
+          example: "123456789"
+
+    LoginRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          example: john.doe@example.com
+        password:
+          type: string
+          format: password
+          example: SecurePassword123!
+
+    AuthResponse:
+      type: object
+      required:
+        - accessToken
+        - tokenType
+        - expiresIn
+        - user
+      properties:
+        accessToken:
+          type: string
+          example: eyJhbGciOiJIUzI1NiJ9...
+        tokenType:
+          type: string
+          example: Bearer
+        expiresIn:
+          type: integer
+          example: 900
+        user:
+          $ref: '#/components/schemas/UserResponse'
+
+    RefreshResponse:
+      type: object
+      required:
+        - accessToken
+        - tokenType
+        - expiresIn
+      properties:
+        accessToken:
+          type: string
+          example: eyJhbGciOiJIUzI1NiJ9...
+        tokenType:
+          type: string
+          example: Bearer
+        expiresIn:
+          type: integer
+          example: 900
+
+    UserResponse:
+      type: object
+      required:
+        - id
+        - firstName
+        - lastName
+        - email
+        - phoneNumber
+        - bsnNumber
+        - role
+        - approved
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 1
+        firstName:
+          type: string
+          example: John
+        lastName:
+          type: string
+          example: Doe
+        email:
+          type: string
+          format: email
+          example: john.doe@example.com
+        phoneNumber:
+          type: string
+          example: "+31612345678"
+        bsnNumber:
+          type: string
+          example: "123456789"
+        role:
+          type: string
+          enum: [CUSTOMER, EMPLOYEE]
+        approved:
+          type: boolean
+          example: false
+        approvedAt:
+          type: string
+          format: date-time
+          nullable: true
+        approvedByUserId:
+          type: integer
+          format: int64
+          nullable: true
+          example: 10
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        links:
+          $ref: '#/components/schemas/ResourceLinks'
+
+    CustomerSummaryResponse:
+      type: object
+      required:
+        - id
+        - firstName
+        - lastName
+        - email
+        - approved
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 1
+        firstName:
+          type: string
+          example: John
+        lastName:
+          type: string
+          example: Doe
+        email:
+          type: string
+          format: email
+          example: john.doe@example.com
+        approved:
+          type: boolean
+          example: true
+        links:
+          $ref: '#/components/schemas/ResourceLinks'
+
+    CustomerIbanLookupResponse:
+      type: object
+      required:
+        - firstName
+        - lastName
+        - iban
+      properties:
+        firstName:
+          type: string
+          example: Jane
+        lastName:
+          type: string
+          example: Smith
+        iban:
+          type: string
+          example: NL34INHO0009876543
+        links:
+          $ref: '#/components/schemas/ResourceLinks'
+
+    AccountResponse:
+      type: object
+      required:
+        - id
+        - iban
+        - userId
+        - accountType
+        - balance
+        - absoluteTransferLimit
+        - dailyTransferLimit
+        - isActive
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 1001
+        iban:
+          type: string
+          example: NL12INHO0001234567
+        userId:
+          type: integer
+          format: int64
+          example: 1
+        accountType:
+          type: string
+          enum: [CHECKING, SAVINGS]
+        balance:
+          type: number
+          format: double
+          example: 1500.00
+        absoluteTransferLimit:
+          type: number
+          format: double
+          example: -500.00
+        dailyTransferLimit:
+          type: number
+          format: double
+          example: 1000.00
+        isActive:
+          type: boolean
+          example: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        links:
+          $ref: '#/components/schemas/ResourceLinks'
+
+    TransactionResponse:
+      type: object
+      required:
+        - id
+        - amount
+        - currency
+        - transactionType
+        - timestamp
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 5001
+        fromAccountId:
+          type: integer
+          format: int64
+          nullable: true
+          example: 1001
+        toAccountId:
+          type: integer
+          format: int64
+          nullable: true
+          example: 1002
+        amount:
+          type: number
+          format: double
+          example: 250.00
+        currency:
+          type: string
+          example: EUR
+        transactionType:
+          type: string
+          enum: [TRANSFER, DEPOSIT, WITHDRAWAL]
+        initiatedByUserId:
+          type: integer
+          format: int64
+          nullable: true
+          example: 1
+        channel:
+          type: string
+          enum: [WEB, ATM, EMPLOYEE]
+          example: WEB
+        timestamp:
+          type: string
+          format: date-time
+        description:
+          type: string
+          nullable: true
+          example: Monthly savings transfer
+        links:
+          $ref: '#/components/schemas/ResourceLinks'
+
+    CreateTransactionRequest:
+      type: object
+      required:
+        - transactionType
+        - amount
+        - channel
+      properties:
+        transactionType:
+          type: string
+          enum: [TRANSFER, DEPOSIT, WITHDRAWAL]
+        fromAccountId:
+          type: integer
+          format: int64
+          nullable: true
+          example: 1001
+        toAccountId:
+          type: integer
+          format: int64
+          nullable: true
+          example: 1002
+        destinationIban:
+          type: string
+          nullable: true
+          example: NL34INHO0009876543
+        amount:
+          type: number
+          format: double
+          example: 100.00
+        channel:
+          type: string
+          enum: [WEB, ATM, EMPLOYEE]
+          example: WEB
+        description:
+          type: string
+          nullable: true
+          example: Move to savings
+
+    UpdateCustomerApprovalRequest:
+      type: object
+      required:
+        - approved
+        - checkingAbsoluteTransferLimit
+        - checkingDailyTransferLimit
+        - savingsAbsoluteTransferLimit
+        - savingsDailyTransferLimit
+      properties:
+        approved:
+          type: boolean
+          example: true
+        checkingAbsoluteTransferLimit:
+          type: number
+          format: double
+          example: -500.00
+        checkingDailyTransferLimit:
+          type: number
+          format: double
+          example: 1000.00
+        savingsAbsoluteTransferLimit:
+          type: number
+          format: double
+          example: 0.00
+        savingsDailyTransferLimit:
+          type: number
+          format: double
+          example: 5000.00
+
+    UpdateAccountRequest:
+      type: object
+      properties:
+        absoluteTransferLimit:
+          type: number
+          format: double
+          example: -250.00
+        dailyTransferLimit:
+          type: number
+          format: double
+          example: 1500.00
+        isActive:
+          type: boolean
+          example: false
+
+    PagedCustomerSummaryResponse:
+      type: object
+      required:
+        - items
+        - page
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/CustomerSummaryResponse'
+        page:
+          $ref: '#/components/schemas/PageMetadata'
+        links:
+          $ref: '#/components/schemas/ResourceLinks'
+
+    PagedCustomerIbanLookupResponse:
+      type: object
+      required:
+        - items
+        - page
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/CustomerIbanLookupResponse'
+        page:
+          $ref: '#/components/schemas/PageMetadata'
+        links:
+          $ref: '#/components/schemas/ResourceLinks'
+
+    PagedAccountResponse:
+      type: object
+      required:
+        - items
+        - page
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/AccountResponse'
+        page:
+          $ref: '#/components/schemas/PageMetadata'
+        links:
+          $ref: '#/components/schemas/ResourceLinks'
+
+    PagedTransactionResponse:
+      type: object
+      required:
+        - items
+        - page
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/TransactionResponse'
+        page:
+          $ref: '#/components/schemas/PageMetadata'
+        links:
+          $ref: '#/components/schemas/ResourceLinks'
+
+security:
+  - bearerAuth: []
+
+paths:
+  /auth/register:
+    post:
+      tags: [Auth]
+      summary: Register a new customer
+      description: |
+        Registers a customer.
+        The customer is created as not yet approved.
+        After registration, the customer can log in but cannot use full banking features until approved by an employee.
+
+        Authorization rules:
+        - Public endpoint; no existing access token is required.
+        - Registration always creates a CUSTOMER user.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201':
+          description: Customer registered successfully
+          headers:
+            Location:
+              description: URL of the created customer resource
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Customer already exists with same email or BSN
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Authenticate user and return access token
+      description: |
+        Authenticates the user and returns a short-lived access token.
+        A refresh token is set by the server in a secure HttpOnly cookie.
+
+        Authorization rules:
+        - Public endpoint; no existing access token is required.
+        - Available to existing CUSTOMER and EMPLOYEE users with valid credentials.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Authentication successful
+          headers:
+            Set-Cookie:
+              description: Secure HttpOnly refresh token cookie
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          description: Missing or invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/refresh:
+    post:
+      tags: [Auth]
+      summary: Refresh access token
+      description: |
+        Issues a new access token using the refresh token stored in a secure HttpOnly cookie.
+
+        Authorization rules:
+        - Public endpoint with respect to bearer authentication.
+        - Requires a valid refresh token cookie issued by the server.
+      security: []
+      responses:
+        '200':
+          description: New access token issued successfully
+          headers:
+            Set-Cookie:
+              description: Optional rotated refresh token cookie
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RefreshResponse'
+        '401':
+          description: Missing, invalid, or expired refresh token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/logout:
+    post:
+      tags: [Auth]
+      summary: Logout current user
+      description: |
+        Invalidates the refresh token and clears the refresh token cookie.
+
+        Authorization rules:
+        - Public endpoint with respect to bearer authentication.
+        - Operates on the refresh token cookie presented by the client.
+      security: []
+      responses:
+        '204':
+          description: Logout successful
+          headers:
+            Set-Cookie:
+              description: Clears the refresh token cookie
+              schema:
+                type: string
+
+  /users/me:
+    get:
+      tags: [Users]
+      summary: Get current logged-in user
+      description: |
+        Returns the profile of the currently authenticated user.
+
+        Authorization rules:
+        - Requires a valid bearer token.
+        - Available to authenticated CUSTOMER and EMPLOYEE users.
+        - Returns only the authenticated user's own profile.
+      responses:
+        '200':
+          description: Current user profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /customers:
+    get:
+      tags: [Customers]
+      summary: List customers
+      description: |
+        Returns a paginated list of customers.
+
+        Authorization rules:
+        - Requires EMPLOYEE role.
+        - Customers are not allowed to list all customers.
+      parameters:
+        - name: approved
+          in: query
+          required: false
+          schema:
+            type: boolean
+          description: Filter customers by approval status
+        - name: firstName
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: lastName
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: email
+          in: query
+          required: false
+          schema:
+            type: string
+            format: email
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: size
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: sort
+          in: query
+          required: false
+          schema:
+            type: string
+            example: createdAt,desc
+      responses:
+        '200':
+          description: Customer list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedCustomerSummaryResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /customers/lookup:
+    get:
+      tags: [Customers]
+      summary: Search customer IBAN by first name and last name
+      description: |
+        Returns paginated IBAN lookup results for customers matching the provided first name and last name.
+
+        Authorization rules:
+        - Requires CUSTOMER role.
+        - Customers may use this endpoint only to retrieve lookup information, not full customer profiles.
+
+        Search options based on requirements:
+        - firstName
+        - lastName
+      parameters:
+        - name: firstName
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: lastName
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: size
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: sort
+          in: query
+          required: false
+          schema:
+            type: string
+            example: lastName,asc
+      responses:
+        '200':
+          description: Matching customer IBAN results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedCustomerIbanLookupResponse'
+        '400':
+          description: Missing search parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /customers/pending:
+    get:
+      tags: [Customers]
+      summary: List customers awaiting approval
+      description: |
+        Returns a paginated list of customers who have registered but have not yet been approved.
+
+        Authorization rules:
+        - Requires EMPLOYEE role.
+        - Customers are not allowed to view pending approvals.
+      parameters:
+        - name: firstName
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: lastName
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: email
+          in: query
+          required: false
+          schema:
+            type: string
+            format: email
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: size
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: sort
+          in: query
+          required: false
+          schema:
+            type: string
+            example: createdAt,asc
+      responses:
+        '200':
+          description: Pending customers
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedCustomerSummaryResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /customers/{customerId}:
+    get:
+      tags: [Customers]
+      summary: Get customer details
+      description: |
+        Returns the full profile of a specific customer.
+
+        Authorization rules:
+        - Requires EMPLOYEE role.
+        - Customers may not retrieve another customer's full profile through this endpoint.
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Customer details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Customer not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /customers/{customerId}/approval:
+    patch:
+      tags: [Customers]
+      summary: Approve a customer and create accounts
+      description: |
+        Updates the approval state of a customer.
+        When a customer is approved, both a checking account and a savings account are created.
+
+        Authorization rules:
+        - Requires EMPLOYEE role.
+        - Customers may not approve themselves or other customers.
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateCustomerApprovalRequest'
+      responses:
+        '200':
+          description: Customer approval updated and accounts created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  customer:
+                    $ref: '#/components/schemas/UserResponse'
+                  accounts:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AccountResponse'
+        '400':
+          description: Invalid approval request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Customer not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Customer already approved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /accounts:
+    get:
+      tags: [Accounts]
+      summary: List accounts visible to the current user
+      description: |
+        Returns a paginated list of accounts visible to the authenticated user.
+
+        Authorization rules:
+        - Customers may view only accounts that belong to themselves.
+        - Employees may view all accounts.
+        - The optional userId filter is intended for EMPLOYEE users.
+        - Unapproved customers should not receive active banking account data through this endpoint.
+      parameters:
+        - name: userId
+          in: query
+          required: false
+          schema:
+            type: integer
+            format: int64
+          description: Optional employee-only filter by customer ID
+        - name: accountType
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [CHECKING, SAVINGS]
+        - name: iban
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: isActive
+          in: query
+          required: false
+          schema:
+            type: boolean
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: size
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: sort
+          in: query
+          required: false
+          schema:
+            type: string
+            example: createdAt,desc
+      responses:
+        '200':
+          description: Account list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedAccountResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /accounts/{accountId}:
+    get:
+      tags: [Accounts]
+      summary: Get account details
+      description: |
+        Returns account details for the specified account.
+
+        Authorization rules:
+        - Customers may view only accounts that belong to themselves.
+        - Employees may view any customer account.
+        - If the authenticated user is not allowed to view the account, the API returns 403 Forbidden
+          or 404 Not Found depending on the application's security policy.
+      parameters:
+        - name: accountId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Account details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Account not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    patch:
+      tags: [Accounts]
+      summary: Partially update an account
+      description: |
+        Partially updates account settings such as transfer limits or active status.
+
+        Authorization rules:
+        - Requires EMPLOYEE role.
+        - Customers may not update account limits or account status through this endpoint.
+      parameters:
+        - name: accountId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateAccountRequest'
+      responses:
+        '200':
+          description: Account updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountResponse'
+        '400':
+          description: Invalid account update
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Account not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /transactions:
+    get:
+      tags: [Transactions]
+      summary: List transactions
+      description: |
+        Returns a paginated list of transactions visible to the authenticated user.
+
+        Authorization rules:
+        - Customers may view only transactions related to their own accounts.
+        - Employees may view all transactions in the system.
+        - The optional customerId filter is intended for EMPLOYEE users.
+
+        Search and filter options based on requirements:
+        - startDate
+        - endDate
+        - amountEq
+        - amountLt
+        - amountGt
+        - iban
+      parameters:
+        - name: startDate
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+        - name: amountEq
+          in: query
+          required: false
+          schema:
+            type: number
+            format: double
+          description: Filter transactions equal to a specific amount
+        - name: amountLt
+          in: query
+          required: false
+          schema:
+            type: number
+            format: double
+          description: Filter transactions less than a specific amount
+        - name: amountGt
+          in: query
+          required: false
+          schema:
+            type: number
+            format: double
+          description: Filter transactions greater than a specific amount
+        - name: iban
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter transactions to or from a specific IBAN
+        - name: customerId
+          in: query
+          required: false
+          schema:
+            type: integer
+            format: int64
+          description: Optional employee-only filter by customer ID
+        - name: transactionType
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [TRANSFER, DEPOSIT, WITHDRAWAL]
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: size
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: sort
+          in: query
+          required: false
+          schema:
+            type: string
+            example: timestamp,desc
+      responses:
+        '200':
+          description: Transaction list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedTransactionResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    post:
+      tags: [Transactions]
+      summary: Create a transaction
+      description: |
+        Creates a transfer, deposit, or withdrawal.
+        Limits and role-based business rules are enforced by the backend.
+
+        Authorization rules:
+        - Requires a valid bearer token.
+        - Customers may create only transactions allowed on their own accounts.
+        - Employees may create employee-initiated transactions according to business rules.
+        - Customers may not create transactions on accounts they do not own.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTransactionRequest'
+      responses:
+        '201':
+          description: Transaction created successfully
+          headers:
+            Location:
+              description: URL of the created transaction resource
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransactionResponse'
+        '400':
+          description: Invalid transaction request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Related account or customer not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Transaction conflicts with business rules
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /transactions/{transactionId}:
+    get:
+      tags: [Transactions]
+      summary: Get transaction details
+      description: |
+        Returns the details of a specific transaction.
+
+        Authorization rules:
+        - Customers may view only transactions related to their own accounts.
+        - Employees may view any transaction in the system.
+        - If the authenticated user is not allowed to view the transaction, the API returns 403 Forbidden
+          or 404 Not Found depending on the application's security policy.
+      parameters:
+        - name: transactionId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Transaction details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransactionResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Transaction not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+                
