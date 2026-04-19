@@ -25,11 +25,8 @@
         </RouterLink>
       </div>
 
-      <RouterLink
-        to="/login"
-        class="rounded-full border border-slate-200 bg-slate-950 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"
-      >
-        Sign in
+      <RouterLink to="/login">
+        <Button variant="primary">Sign in</Button>
       </RouterLink>
     </nav>
 
@@ -53,14 +50,19 @@
 
 <script setup>
 import { useRoute } from 'vue-router'
+import Button from '../ui/Button.vue'
+
+defineProps({
+  links: {
+    type: Array,
+    default: () => [
+      { label: 'Home', to: '/' },
+      { label: 'Accounts', to: '/accounts' },
+      { label: 'Transfers', to: '/transfers' },
+    ],
+  },
+})
 
 const route = useRoute()
-
-const links = [
-  { label: 'Home', to: '/' },
-  { label: 'Accounts', to: '/accounts' },
-  { label: 'Transfers', to: '/transfers' },
-]
-
 const isActive = (path) => route.path === path
 </script>
