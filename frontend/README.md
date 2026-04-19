@@ -12,13 +12,16 @@ This module contains the Vue frontend for ProjectBankApp.
 
 ## What is currently implemented
 
-- A reusable navbar component
+- A reusable authenticated app shell
 - Vue Router pages for:
   - `/`
   - `/accounts`
   - `/transfers`
   - `/login`
-- A minimal home page that acts as a live API test page for the backend example user endpoints
+  - `/register`
+- Session bootstrap through `/api/auth/refresh`
+- Login and registration forms backed by the backend auth API
+- Approval-aware route gating and navigation
 - Tailwind-based styling instead of the default Vite starter UI
 
 ## Folder structure
@@ -28,23 +31,22 @@ Main frontend files:
 - `src/main.js` mounts the Vue app and router
 - `src/App.vue` contains the app shell
 - `src/router/index.js` defines the routes
-- `src/components/organisms/AppNavbar.vue` contains the navbar
-- `src/components/pages/HomePage.vue` contains the live API test page
-- `src/components/pages/AccountsPage.vue` is a placeholder page
-- `src/components/pages/TransfersPage.vue` is a placeholder page
-- `src/components/pages/LoginPage.vue` is a placeholder page
-- `src/config.js` contains the example API endpoint path
+- `src/composables/useAuth.js` centralizes auth state and access helpers
+- `src/services/authService.js` wraps the auth API calls
+- `src/components/layout/AppHeader.vue` renders the approval-aware navigation
+- `src/views/HomeView.vue` shows the authenticated and pending-approval home states
+- `src/views/LoginView.vue` and `src/views/RegisterView.vue` handle auth forms
+- `src/views/AccountsView.vue` and `src/views/TransfersView.vue` are still placeholder protected pages
 - `public/favicon.ico` is the site favicon
 
-## Home page API test
+## Route access behavior
 
-The home page is intentionally simple. It is meant to help development, not act like a finished landing page.
-
-It currently supports:
-- `GET /api/users`
-- `POST /api/users`
-
-The page prints the JSON response directly so teammates can quickly check whether the backend is reachable and returning the expected data.
+- unauthenticated users are redirected to `/login` for protected routes
+- `/login` and `/register` are public routes
+- authenticated unapproved customers are restricted to `/`
+- authenticated approved customers and employees may access `/accounts` and `/transfers`
+- the header hides `Accounts` and `Transfers` for restricted customers
+- the home page shows a waiting-for-approval state for unapproved customers
 
 ## Running locally
 
@@ -119,6 +121,6 @@ This gives you:
 
 ## Notes for teammates
 
-- `Accounts`, `Transfers`, and `Login` are placeholder routes for now.
-- The current home page is a developer-facing test page, not final product UI.
+- `Accounts` and `Transfers` are still placeholder views behind the current route guard.
+- The home page is no longer an API playground; it reflects authenticated user state from the backend.
 - When you connect more backend features, keep using the routed page structure instead of putting everything in `App.vue`.

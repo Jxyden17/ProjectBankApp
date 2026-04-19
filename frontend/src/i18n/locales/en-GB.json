@@ -1,13 +1,16 @@
 {
   "brand": {
-    "name": "Project Bank",
-    "tagline": "Student demo application"
+    "name": "DBB Bank",
+    "tagline": "The Best Bank Of NL"
   },
   "nav": {
     "home": "Home",
     "accounts": "Accounts",
     "transfers": "Transfers",
-    "signIn": "Sign in"
+    "signIn": "Sign in",
+    "register": "Register",
+    "logout": "Logout",
+    "welcome": "Hi, {name}"
   },
   "common": {
     "loading": "Loading...",
@@ -21,34 +24,22 @@
     "copyright": "\u00a9 {year} {brand} \u00b7 {tagline}"
   },
   "home": {
-    "label": "API Test",
-    "title": "Example users endpoint",
-    "description": "Use this page to test the backend at {endpoint}.",
-    "loadCard": {
-      "method": "GET",
-      "title": "Load users",
-      "description": "Fetch the current example users from the Spring backend.",
-      "button": "Load users"
-    },
-    "createCard": {
-      "method": "POST",
-      "title": "Create user",
-      "button": "Create user"
-    },
-    "form": {
-      "firstName": "First name",
-      "lastName": "Last name",
-      "email": "Email"
-    },
-    "response": {
-      "label": "Response",
-      "title": "Latest result",
-      "initial": "No request sent yet.",
-      "successGet": "Loaded example users successfully.",
-      "successPost": "Created example user successfully.",
-      "errorFallback": "Request failed.",
-      "errorWithStatus": "Request failed with status {status}"
-    }
+    "label": "Welcome",
+    "title": "Welcome back, {name}",
+    "description": "Your authenticated session is active. Banking features will appear here as the backend expands.",
+    "descriptionPending": "Your account has been created and signed in successfully, but customer access stays limited until an employee approves your profile.",
+    "summaryLabel": "Current profile",
+    "summaryDescription": "This screen now uses the authenticated user returned by `/api/users/me` instead of the old demo example-users flow.",
+    "summaryDescriptionPending": "Your customer record is waiting for manual approval. Until that happens, this home screen is your only available route.",
+    "roleLabel": "Role",
+    "statusLabel": "Approval",
+    "statusApproved": "Approved",
+    "statusPending": "Pending approval",
+    "nextLabel": "Next",
+    "nextTitle": "Ready for protected routes",
+    "nextDescription": "Accounts and transfers stay behind authentication now, and the app restores your session through `/api/auth/refresh` on reload.",
+    "nextTitlePending": "Waiting for employee approval",
+    "nextDescriptionPending": "Accounts and transfers will unlock after your customer profile is approved. For now, you can stay on this overview while the review is pending."
   },
   "accounts": {
     "label": "Accounts",
@@ -63,10 +54,27 @@
   "login": {
     "label": "Authentication",
     "title": "Sign in",
-    "description": "This placeholder page is ready for your future login form, token storage, and authenticated route handling.",
+    "description": "Use your Project Bank credentials to continue to the protected app.",
     "emailLabel": "Email",
     "passwordLabel": "Password",
-    "continueButton": "Continue"
+    "continueButton": "Continue",
+    "registrationSuccess": "Account created. Sign in to continue.",
+    "registerPrompt": "No account yet?",
+    "registerLink": "Register now"
+  },
+  "register": {
+    "label": "Onboarding",
+    "title": "Create your customer account",
+    "description": "Registration creates an unapproved customer profile first. An employee approval step is still required before account routes unlock.",
+    "firstNameLabel": "First name",
+    "lastNameLabel": "Last name",
+    "emailLabel": "Email",
+    "passwordLabel": "Password",
+    "phoneNumberLabel": "Phone number",
+    "bsnNumberLabel": "BSN number",
+    "continueButton": "Create account",
+    "loginPrompt": "Already registered?",
+    "loginLink": "Sign in"
   },
   "languages": {
     "en-GB": "English (UK)",
