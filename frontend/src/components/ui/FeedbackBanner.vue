@@ -22,7 +22,7 @@ defineProps({
 })
 
 const tones = {
-  success: 'border-emerald-400/30 bg-emerald-400/10 text-emerald-100',
-  error: 'border-rose-400/30 bg-rose-400/10 text-rose-100',
+  success: 'border-emerald-300 bg-emerald-50 text-emerald-800',
+  error: 'border-rose-300 bg-rose-50 text-rose-800',
 }
 </script>

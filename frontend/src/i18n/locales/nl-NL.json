@@ -1,13 +1,16 @@
 {
   "brand": {
-    "name": "Project Bank",
-    "tagline": "Studenten demo-applicatie"
+    "name": "DBB Bank",
+    "tagline": "Beste Bank van NL"
   },
   "nav": {
     "home": "Home",
     "accounts": "Rekeningen",
     "transfers": "Overboekingen",
-    "signIn": "Inloggen"
+    "signIn": "Inloggen",
+    "register": "Registreren",
+    "logout": "Uitloggen",
+    "welcome": "Hoi, {name}"
   },
   "common": {
     "loading": "Laden...",
@@ -21,34 +24,22 @@
     "copyright": "\u00a9 {year} {brand} \u00b7 {tagline}"
   },
   "home": {
-    "label": "API-test",
-    "title": "Voorbeeldgebruikers endpoint",
-    "description": "Gebruik deze pagina om de backend te testen op {endpoint}.",
-    "loadCard": {
-      "method": "GET",
-      "title": "Gebruikers laden",
-      "description": "Haal de huidige voorbeeldgebruikers op van de Spring-backend.",
-      "button": "Gebruikers laden"
-    },
-    "createCard": {
-      "method": "POST",
-      "title": "Gebruiker aanmaken",
-      "button": "Gebruiker aanmaken"
-    },
-    "form": {
-      "firstName": "Voornaam",
-      "lastName": "Achternaam",
-      "email": "E-mail"
-    },
-    "response": {
-      "label": "Antwoord",
-      "title": "Laatste resultaat",
-      "initial": "Nog geen verzoek verstuurd.",
-      "successGet": "Voorbeeldgebruikers succesvol geladen.",
-      "successPost": "Voorbeeldgebruiker succesvol aangemaakt.",
-      "errorFallback": "Verzoek mislukt.",
-      "errorWithStatus": "Verzoek mislukt met status {status}"
-    }
+    "label": "Welkom",
+    "title": "Welkom terug, {name}",
+    "description": "Je geauthenticeerde sessie is actief. Bankfuncties verschijnen hier zodra de backend verder wordt uitgebreid.",
+    "descriptionPending": "Je account is aangemaakt en je bent ingelogd, maar klanttoegang blijft beperkt totdat een medewerker je profiel goedkeurt.",
+    "summaryLabel": "Huidig profiel",
+    "summaryDescription": "Dit scherm gebruikt nu de ingelogde gebruiker van `/api/users/me` in plaats van de oude demo met voorbeeldgebruikers.",
+    "summaryDescriptionPending": "Je klantrecord wacht op handmatige goedkeuring. Tot die tijd is dit homescherm de enige route die beschikbaar blijft.",
+    "roleLabel": "Rol",
+    "statusLabel": "Goedkeuring",
+    "statusApproved": "Goedgekeurd",
+    "statusPending": "Wacht op goedkeuring",
+    "nextLabel": "Volgende stap",
+    "nextTitle": "Klaar voor beveiligde routes",
+    "nextDescription": "Rekeningen en overboekingen zitten nu achter authenticatie, en de app herstelt je sessie via `/api/auth/refresh` na een refresh.",
+    "nextTitlePending": "Wachten op goedkeuring door medewerker",
+    "nextDescriptionPending": "Rekeningen en overboekingen worden beschikbaar nadat je klantprofiel is goedgekeurd. Tot die tijd blijf je op dit overzicht terwijl de controle loopt."
   },
   "accounts": {
     "label": "Rekeningen",
@@ -63,10 +54,27 @@
   "login": {
     "label": "Authenticatie",
     "title": "Inloggen",
-    "description": "Deze placeholderpagina is klaar voor je toekomstige inlogformulier, tokenopslag en afhandeling van geauthenticeerde routes.",
+    "description": "Gebruik je Project Bank-gegevens om verder te gaan naar de beveiligde app.",
     "emailLabel": "E-mail",
     "passwordLabel": "Wachtwoord",
-    "continueButton": "Doorgaan"
+    "continueButton": "Doorgaan",
+    "registrationSuccess": "Account aangemaakt. Log in om verder te gaan.",
+    "registerPrompt": "Nog geen account?",
+    "registerLink": "Nu registreren"
+  },
+  "register": {
+    "label": "Aanmelden",
+    "title": "Maak je klantaccount aan",
+    "description": "Registratie maakt eerst een niet-goedgekeurd klantprofiel aan. Een medewerker moet je daarna nog goedkeuren voordat rekeningroutes beschikbaar worden.",
+    "firstNameLabel": "Voornaam",
+    "lastNameLabel": "Achternaam",
+    "emailLabel": "E-mail",
+    "passwordLabel": "Wachtwoord",
+    "phoneNumberLabel": "Telefoonnummer",
+    "bsnNumberLabel": "BSN-nummer",
+    "continueButton": "Account aanmaken",
+    "loginPrompt": "Al geregistreerd?",
+    "loginLink": "Inloggen"
   },
   "languages": {
     "en-GB": "English (UK)",

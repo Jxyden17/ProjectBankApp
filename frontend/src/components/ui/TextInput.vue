@@ -7,13 +7,13 @@
       :required="required"
       :placeholder="placeholder"
       class="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm text-slate-950 outline-none transition focus:border-emerald-500"
-      @input="$emit('update:modelValue', $event.target.value.trim())"
+      @input="handleInput"
     >
   </label>
 </template>
 
 <script setup>
-defineProps({
+const props = defineProps({
   modelValue: {
     type: String,
     default: '',
@@ -34,7 +34,16 @@ defineProps({
     type: String,
     default: '',
   },
+  trim: {
+    type: Boolean,
+    default: true,
+  },
 })
 
-defineEmits(['update:modelValue'])
+const emit = defineEmits(['update:modelValue'])
+
+const handleInput = (event) => {
+  const nextValue = props.trim ? event.target.value.trim() : event.target.value
+  emit('update:modelValue', nextValue)
+}
 </script>
