@@ -25,3 +25,18 @@ CREATE TABLE IF NOT EXISTS refresh_tokens (
     CONSTRAINT fk_refresh_tokens_user
         FOREIGN KEY (user_id) REFERENCES users(id)
 );
+
+CREATE TABLE IF NOT EXISTS accounts (
+    id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    iban VARCHAR(18) NOT NULL UNIQUE,
+    user_id BIGINT NOT NULL,
+    account_type VARCHAR(20) NOT NULL,
+    balance DECIMAL(19, 2) NOT NULL DEFAULT 0.00,
+    absolute_transfer_limit DECIMAL(19, 2) NOT NULL,
+    daily_transfer_limit DECIMAL(19, 2) NOT NULL,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at DATETIME NOT NULL,
+    updated_at DATETIME NOT NULL,
+    CONSTRAINT fk_accounts_user
+        FOREIGN KEY (user_id) REFERENCES users(id)
+);

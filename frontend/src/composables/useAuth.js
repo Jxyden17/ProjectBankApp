@@ -79,9 +79,6 @@ const auth = {
   ),
   isAuthenticated: computed(() => Boolean(state.accessToken && state.currentUser)),
   isEmployee: computed(() => state.currentUser?.role === USER_ROLE.EMPLOYEE),
-  isApprovedCustomer: computed(
-    () => state.currentUser?.role === USER_ROLE.CUSTOMER && state.currentUser?.approved === true,
-  ),
   isRestrictedCustomer: computed(
     () => state.currentUser?.role === USER_ROLE.CUSTOMER && state.currentUser?.approved === false,
   ),

@@ -81,6 +81,8 @@ Currently implemented endpoints:
 - `POST /api/auth/refresh`
 - `POST /api/auth/logout`
 - `GET /api/users/me`
+- `GET /api/customers/pending`
+- `PATCH /api/customers/{customerId}/approval`
 
 The backend test suite uses H2 and creates its own test users inside the tests instead of depending on shared app-level seed data.
 
@@ -175,7 +177,8 @@ Important backend CI notes:
 
 - The frontend has a working auth shell with login, registration, session restore, and approval-aware navigation.
 - The backend has a working auth slice with registration validation, login, refresh rotation, logout, and current-user lookup.
-- Approval management, account APIs, and transfer APIs are still not implemented in the running backend.
+- Employee customer approval with pending-customer listing and checking/savings account creation is implemented.
+- Account list/detail APIs and transfer APIs are still not implemented in the running backend.
 
 For more detail, see:
 - [backend/api/README.md](backend/api/README.md)

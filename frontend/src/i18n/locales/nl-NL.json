@@ -7,6 +7,7 @@
     "home": "Home",
     "accounts": "Rekeningen",
     "transfers": "Overboekingen",
+    "approvals": "Goedkeuringen",
     "signIn": "Inloggen",
     "register": "Registreren",
     "logout": "Uitloggen",
@@ -50,6 +51,22 @@
     "label": "Overboekingen",
     "title": "Geld overmaken",
     "description": "Deze route is klaar voor een overboekingsformulier met selectie van bronrekening, IBAN-velden, bedragvalidatie en een aanroep naar het backend-overboekingsendpoint."
+  },
+  "pendingCustomers": {
+    "label": "Medewerker",
+    "title": "Wachtende klantgoedkeuringen",
+    "description": "Geregistreerde klanten zonder bankrekeningen staan hier klaar voor controle door een medewerker.",
+    "emptyLabel": "Geen wachtrij",
+    "emptyTitle": "Er wachten geen klanten op goedkeuring",
+    "customerLabel": "Klant",
+    "emailLabel": "E-mail",
+    "statusLabel": "Status",
+    "checkingAbsoluteLabel": "Absolute limiet betaalrekening",
+    "checkingDailyLabel": "Daglimiet betaalrekening",
+    "savingsAbsoluteLabel": "Absolute limiet spaarrekening",
+    "savingsDailyLabel": "Daglimiet spaarrekening",
+    "approveButton": "Goedkeuren en rekeningen aanmaken",
+    "approvalSuccess": "{name} is goedgekeurd."
   },
   "login": {
     "label": "Authenticatie",

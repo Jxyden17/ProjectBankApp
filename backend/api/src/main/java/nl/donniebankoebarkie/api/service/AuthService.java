@@ -10,6 +10,7 @@ import nl.donniebankoebarkie.api.exception.AuthenticationFailedException;
 import nl.donniebankoebarkie.api.exception.ConflictException;
 import nl.donniebankoebarkie.api.exception.InvalidRefreshTokenException;
 import nl.donniebankoebarkie.api.exception.ResourceNotFoundException;
+import nl.donniebankoebarkie.api.mapper.UserMapper;
 import nl.donniebankoebarkie.api.model.RefreshToken;
 import nl.donniebankoebarkie.api.model.User;
 import nl.donniebankoebarkie.api.model.enums.UserRole;
@@ -55,15 +56,58 @@ public class AuthService implements IAuthService {
 
     @Override
     public UserResponse register(RegisterRequest request) {
+        validateUniqueRegistration(request);
+        User user = createCustomerUser(request);
+        return UserMapper.toUserResponse(authRepository.save(user));
+    }
+
+    @Override
+    public LoginResult login(LoginRequest request) {
+        User user = getUserForLogin(request.email());
+        validatePassword(request.password(), user);
+        return createLoginResult(user);
+    }
+
+    @Override
+    public RefreshResult refresh(String refreshToken) {
+        String sanitizedRefreshToken = requireRefreshToken(refreshToken);
+        RefreshToken storedToken = getUsableRefreshToken(sanitizedRefreshToken);
+        User user = getRefreshTokenUser(storedToken);
+
+        return rotateRefreshToken(storedToken, user);
+    }
+
+    @Override
+    public void logout(String refreshToken) {
+        String sanitizedRefreshToken = sanitizeRefreshToken(refreshToken);
+
+        if (sanitizedRefreshToken == null || sanitizedRefreshToken.isBlank()) {
+            return;
+        }
+
+        refreshTokenRepository.findByTokenHash(hashToken(sanitizedRefreshToken))
+                .ifPresent(refreshTokenRepository::revoke);
+    }
+
+    @Override
+    public UserResponse getCurrentUser(Long userId) {
+        return authRepository.findById(userId)
+                .map(UserMapper::toUserResponse)
+                .orElseThrow(() -> new ResourceNotFoundException("Authenticated user was not found."));
+    }
+
+    private void validateUniqueRegistration(RegisterRequest request) {
         if (authRepository.existsByEmail(request.email())) {
             throw new ConflictException("A user with that email already exists.");
         }
         if (authRepository.existsByBsnNumber(request.bsnNumber())) {
             throw new ConflictException("A user with that BSN already exists.");
         }
+    }
 
+    private User createCustomerUser(RegisterRequest request) {
         LocalDateTime now = LocalDateTime.now();
-        User user = new User(
+        return new User(
                 null,
                 request.firstName(),
                 request.lastName(),
@@ -78,75 +122,79 @@ public class AuthService implements IAuthService {
                 now,
                 now
         );
-        return toUserResponse(authRepository.save(user));
     }
 
-    @Override
-    public LoginResult login(LoginRequest request) {
-        User user = authRepository.findByEmail(request.email())
+    private User getUserForLogin(String email) {
+        return authRepository.findByEmail(email)
                 .orElseThrow(() -> new AuthenticationFailedException("Invalid email or password."));
+    }
 
-        if (!passwordEncoder.matches(request.password(), user.getPasswordHash())) {
+    private void validatePassword(String password, User user) {
+        if (!passwordEncoder.matches(password, user.getPasswordHash())) {
             throw new AuthenticationFailedException("Invalid email or password.");
         }
+    }
 
-        String accessToken = jwtService.generateAccessToken(user);
+    private LoginResult createLoginResult(User user) {
         String rawRefreshToken = generateRefreshToken();
         saveRefreshToken(user.getId(), rawRefreshToken);
 
         return new LoginResult(
-                new AuthResponse(accessToken, "Bearer", jwtProperties.accessTokenExpirationSeconds(), toUserResponse(user)),
+                new AuthResponse(
+                        jwtService.generateAccessToken(user),
+                        "Bearer",
+                        jwtProperties.accessTokenExpirationSeconds(),
+                        UserMapper.toUserResponse(user)
+                ),
                 rawRefreshToken,
                 jwtProperties.refreshTokenExpirationSeconds()
         );
     }
 
-    @Override
-    public RefreshResult refresh(String refreshToken) {
-        String sanitizedRefreshToken = refreshToken == null ? null : refreshToken.trim();
+    private String requireRefreshToken(String refreshToken) {
+        String sanitizedRefreshToken = sanitizeRefreshToken(refreshToken);
 
         if (sanitizedRefreshToken == null || sanitizedRefreshToken.isBlank()) {
             throw new InvalidRefreshTokenException("Refresh token is missing or invalid.");
         }
 
-        RefreshToken storedToken = refreshTokenRepository.findByTokenHash(hashToken(sanitizedRefreshToken))
+        return sanitizedRefreshToken;
+    }
+
+    private String sanitizeRefreshToken(String refreshToken) {
+        return refreshToken == null ? null : refreshToken.trim();
+    }
+
+    private RefreshToken getUsableRefreshToken(String rawRefreshToken) {
+        RefreshToken storedToken = refreshTokenRepository.findByTokenHash(hashToken(rawRefreshToken))
                 .orElseThrow(() -> new InvalidRefreshTokenException("Refresh token is missing or invalid."));
 
         if (storedToken.isRevoked() || storedToken.getExpiresAt().isBefore(LocalDateTime.now())) {
             throw new InvalidRefreshTokenException("Refresh token is expired or revoked.");
         }
 
-        User user = authRepository.findById(storedToken.getUserId())
-                .orElseThrow(() -> new InvalidRefreshTokenException("Refresh token user was not found."));
+        return storedToken;
+    }
 
+    private User getRefreshTokenUser(RefreshToken refreshToken) {
+        return authRepository.findById(refreshToken.getUserId())
+                .orElseThrow(() -> new InvalidRefreshTokenException("Refresh token user was not found."));
+    }
+
+    private RefreshResult rotateRefreshToken(RefreshToken storedToken, User user) {
         refreshTokenRepository.revoke(storedToken);
         String rotatedRefreshToken = generateRefreshToken();
         saveRefreshToken(user.getId(), rotatedRefreshToken);
 
         return new RefreshResult(
-                new RefreshResponse(jwtService.generateAccessToken(user), "Bearer", jwtProperties.accessTokenExpirationSeconds()),
+                new RefreshResponse(
+                        jwtService.generateAccessToken(user),
+                        "Bearer",
+                        jwtProperties.accessTokenExpirationSeconds()
+                ),
                 rotatedRefreshToken,
                 jwtProperties.refreshTokenExpirationSeconds()
         );
-    }
-
-    @Override
-    public void logout(String refreshToken) {
-        String sanitizedRefreshToken = refreshToken == null ? null : refreshToken.trim();
-
-        if (sanitizedRefreshToken == null || sanitizedRefreshToken.isBlank()) {
-            return;
-        }
-
-        refreshTokenRepository.findByTokenHash(hashToken(sanitizedRefreshToken))
-                .ifPresent(refreshTokenRepository::revoke);
-    }
-
-    @Override
-    public UserResponse getCurrentUser(Long userId) {
-        return authRepository.findById(userId)
-                .map(this::toUserResponse)
-                .orElseThrow(() -> new ResourceNotFoundException("Authenticated user was not found."));
     }
 
     private void saveRefreshToken(Long userId, String rawRefreshToken) {
@@ -174,20 +222,4 @@ public class AuthService implements IAuthService {
         }
     }
 
-    private UserResponse toUserResponse(User user) {
-        return new UserResponse(
-                user.getId(),
-                user.getFirstName(),
-                user.getLastName(),
-                user.getEmail(),
-                user.getPhoneNumber(),
-                user.getBsnNumber(),
-                user.getRole(),
-                user.isApproved(),
-                user.getApprovedAt(),
-                user.getApprovedByUserId(),
-                user.getCreatedAt(),
-                user.getUpdatedAt()
-        );
-    }
 }

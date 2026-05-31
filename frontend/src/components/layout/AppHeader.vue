@@ -105,6 +105,7 @@ const props = defineProps({
       { labelKey: 'nav.home', to: '/' },
       { labelKey: 'nav.accounts', to: '/accounts' },
       { labelKey: 'nav.transfers', to: '/transfers' },
+      { labelKey: 'nav.approvals', to: '/customers/pending', employeeOnly: true },
     ],
   },
 })
@@ -114,9 +115,13 @@ const router = useRouter()
 const auth = useAuth()
 const isLoggingOut = ref(false)
 const visibleLinks = computed(() =>
-  auth.isRestrictedCustomer.value
-    ? props.links.filter((link) => link.to === '/')
-    : props.links,
+  props.links.filter((link) => {
+    if (auth.isRestrictedCustomer.value) {
+      return link.to === '/'
+    }
+
+    return !link.employeeOnly || auth.isEmployee.value
+  }),
 )
 
 const isActive = (path) => route.path === path

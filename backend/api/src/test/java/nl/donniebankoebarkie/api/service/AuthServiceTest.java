@@ -5,6 +5,8 @@ import nl.donniebankoebarkie.api.dto.auth.request.LoginRequest;
 import nl.donniebankoebarkie.api.dto.auth.request.RegisterRequest;
 import nl.donniebankoebarkie.api.exception.AuthenticationFailedException;
 import nl.donniebankoebarkie.api.exception.ConflictException;
+import nl.donniebankoebarkie.api.exception.InvalidRefreshTokenException;
+import nl.donniebankoebarkie.api.exception.ResourceNotFoundException;
 import nl.donniebankoebarkie.api.model.RefreshToken;
 import nl.donniebankoebarkie.api.model.User;
 import nl.donniebankoebarkie.api.model.enums.UserRole;
@@ -168,12 +170,7 @@ class AuthServiceTest {
     @Test
     void refreshRotatesRefreshTokenAndReturnsNewAccessToken() {
         User user = approvedCustomer();
-        RefreshToken storedToken = new RefreshToken();
-        storedToken.setId(9L);
-        storedToken.setUserId(user.getId());
-        storedToken.setTokenHash("hashed-old-token");
-        storedToken.setExpiresAt(LocalDateTime.of(2026, 4, 20, 10, 0));
-        storedToken.setRevoked(false);
+        RefreshToken storedToken = usableRefreshToken(user.getId());
         when(refreshTokenRepository.findByTokenHash(anyString())).thenReturn(Optional.of(storedToken));
         when(authRepository.findById(user.getId())).thenReturn(Optional.of(user));
         when(jwtService.generateAccessToken(user)).thenReturn("new-access-token");
@@ -189,18 +186,69 @@ class AuthServiceTest {
     }
 
     @Test
+    void refreshRejectsMissingRefreshToken() {
+        assertThrows(InvalidRefreshTokenException.class, () -> authService.refresh(" "));
+
+        verifyNoInteractions(authRepository, refreshTokenRepository, jwtService);
+    }
+
+    @Test
+    void refreshRejectsUnknownRefreshToken() {
+        when(refreshTokenRepository.findByTokenHash(anyString())).thenReturn(Optional.empty());
+
+        assertThrows(InvalidRefreshTokenException.class, () -> authService.refresh("unknown-refresh-token"));
+
+        verifyNoInteractions(authRepository, jwtService);
+    }
+
+    @Test
+    void refreshRejectsRevokedRefreshToken() {
+        RefreshToken storedToken = usableRefreshToken(1L);
+        storedToken.setRevoked(true);
+        when(refreshTokenRepository.findByTokenHash(anyString())).thenReturn(Optional.of(storedToken));
+
+        assertThrows(InvalidRefreshTokenException.class, () -> authService.refresh("revoked-refresh-token"));
+
+        verifyNoInteractions(authRepository, jwtService);
+    }
+
+    @Test
+    void refreshRejectsExpiredRefreshToken() {
+        RefreshToken storedToken = usableRefreshToken(1L);
+        storedToken.setExpiresAt(LocalDateTime.of(2000, 1, 1, 0, 0));
+        when(refreshTokenRepository.findByTokenHash(anyString())).thenReturn(Optional.of(storedToken));
+
+        assertThrows(InvalidRefreshTokenException.class, () -> authService.refresh("expired-refresh-token"));
+
+        verifyNoInteractions(authRepository, jwtService);
+    }
+
+    @Test
+    void refreshRejectsRefreshTokenWhenUserNoLongerExists() {
+        RefreshToken storedToken = usableRefreshToken(1L);
+        when(refreshTokenRepository.findByTokenHash(anyString())).thenReturn(Optional.of(storedToken));
+        when(authRepository.findById(storedToken.getUserId())).thenReturn(Optional.empty());
+
+        assertThrows(InvalidRefreshTokenException.class, () -> authService.refresh("orphan-refresh-token"));
+
+        verify(jwtService, never()).generateAccessToken(any(User.class));
+    }
+
+    @Test
     void logoutRevokesPresentedRefreshTokenWhenItExists() {
-        RefreshToken storedToken = new RefreshToken();
-        storedToken.setId(11L);
-        storedToken.setUserId(1L);
-        storedToken.setTokenHash("hashed-refresh-token");
-        storedToken.setExpiresAt(LocalDateTime.of(2026, 4, 20, 10, 0));
-        storedToken.setRevoked(false);
+        RefreshToken storedToken = usableRefreshToken(1L);
         when(refreshTokenRepository.findByTokenHash(anyString())).thenReturn(Optional.of(storedToken));
 
         authService.logout("refresh-token");
 
         verify(refreshTokenRepository).revoke(storedToken);
+    }
+
+    @Test
+    void logoutIgnoresMissingRefreshToken() {
+        authService.logout(" ");
+
+        verifyNoInteractions(refreshTokenRepository);
     }
 
     @Test
@@ -211,6 +259,34 @@ class AuthServiceTest {
 
         assertThrows(AuthenticationFailedException.class,
                 () -> authService.login(new LoginRequest(user.getEmail(), "welkom123")));
+    }
+
+    @Test
+    void getCurrentUserReturnsProfile() {
+        User user = approvedCustomer();
+        when(authRepository.findById(user.getId())).thenReturn(Optional.of(user));
+
+        var response = authService.getCurrentUser(user.getId());
+
+        assertEquals(user.getId(), response.id());
+        assertEquals(user.getEmail(), response.email());
+    }
+
+    @Test
+    void getCurrentUserRejectsMissingUser() {
+        when(authRepository.findById(404L)).thenReturn(Optional.empty());
+
+        assertThrows(ResourceNotFoundException.class, () -> authService.getCurrentUser(404L));
+    }
+
+    private RefreshToken usableRefreshToken(Long userId) {
+        RefreshToken storedToken = new RefreshToken();
+        storedToken.setId(9L);
+        storedToken.setUserId(userId);
+        storedToken.setTokenHash("hashed-refresh-token");
+        storedToken.setExpiresAt(LocalDateTime.of(2099, 4, 20, 10, 0));
+        storedToken.setRevoked(false);
+        return storedToken;
     }
 
     private User approvedCustomer() {
