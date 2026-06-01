@@ -7,6 +7,7 @@
     "home": "Home",
     "accounts": "Accounts",
     "transfers": "Transfers",
+    "approvals": "Approvals",
     "signIn": "Sign in",
     "register": "Register",
     "logout": "Logout",
@@ -50,6 +51,22 @@
     "label": "Transfers",
     "title": "Transfer funds",
     "description": "This route is ready for a transfer form with source account selection, IBAN fields, amount validation, and a call to the backend transfer endpoint."
+  },
+  "pendingCustomers": {
+    "label": "Employee",
+    "title": "Pending customer approvals",
+    "description": "Registered customers without bank accounts are listed here for employee review.",
+    "emptyLabel": "Queue clear",
+    "emptyTitle": "No customers are waiting for approval",
+    "customerLabel": "Customer",
+    "emailLabel": "Email",
+    "statusLabel": "Status",
+    "checkingAbsoluteLabel": "Checking absolute limit",
+    "checkingDailyLabel": "Checking daily limit",
+    "savingsAbsoluteLabel": "Savings absolute limit",
+    "savingsDailyLabel": "Savings daily limit",
+    "approveButton": "Approve and create accounts",
+    "approvalSuccess": "{name} has been approved."
   },
   "login": {
     "label": "Authentication",

@@ -52,20 +52,14 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(@RequestBody LoginRequest request) {
         LoginResult result = authService.login(request);
-        return ResponseEntity.ok()
-                .header(HttpHeaders.SET_COOKIE,
-                        buildRefreshCookie(result.refreshToken(), result.refreshTokenExpiresIn()).toString())
-                .body(result.response());
+        return okWithRefreshCookie(result.response(), result.refreshToken(), result.refreshTokenExpiresIn());
     }
 
     @PostMapping("/refresh")
     public ResponseEntity<RefreshResponse> refresh(
             @CookieValue(name = REFRESH_COOKIE_NAME, required = false) String refreshToken) {
         RefreshResult result = authService.refresh(refreshToken);
-        return ResponseEntity.ok()
-                .header(HttpHeaders.SET_COOKIE,
-                        buildRefreshCookie(result.refreshToken(), result.refreshTokenExpiresIn()).toString())
-                .body(result.response());
+        return okWithRefreshCookie(result.response(), result.refreshToken(), result.refreshTokenExpiresIn());
     }
 
     @PostMapping("/logout")
@@ -75,6 +69,12 @@ public class AuthController {
         return ResponseEntity.noContent()
                 .header(HttpHeaders.SET_COOKIE, clearRefreshCookie().toString())
                 .build();
+    }
+
+    private <T> ResponseEntity<T> okWithRefreshCookie(T body, String refreshToken, long maxAgeSeconds) {
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, buildRefreshCookie(refreshToken, maxAgeSeconds).toString())
+                .body(body);
     }
 
     private ResponseCookie buildRefreshCookie(String refreshToken, long maxAgeSeconds) {

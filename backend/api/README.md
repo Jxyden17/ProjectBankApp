@@ -42,6 +42,8 @@ Currently implemented endpoints:
 - `POST /api/auth/refresh`
 - `POST /api/auth/logout`
 - `GET /api/users/me`
+- `GET /api/customers/pending`
+- `PATCH /api/customers/{customerId}/approval`
 
 Example request body for `POST /api/auth/register`:
 
@@ -63,7 +65,8 @@ The current backend slice is centered on authentication and the authenticated us
 - `controller/AuthController.java` handles registration, login, refresh, and logout
 - `controller/UserController.java` exposes `/users/me`
 - `service/AuthService.java` contains the auth business logic
-- `repository/AuthRepository.java` and `RefreshTokenRepository.java` handle persistence
+- `repository/interfaces/IAuthRepository.java` uses Spring Data JPA for user persistence
+- `repository/interfaces/IRefreshTokenRepository.java` uses Spring Data JPA for refresh-token persistence
 - `model/User.java` maps authenticated users
 - `model/RefreshToken.java` stores hashed refresh tokens
 - `security/JwtService.java` and `security/JwtAuthenticationFilter.java` handle JWT creation and request authentication
@@ -160,6 +163,6 @@ If CI fails with H2 schema or auth test errors, check these files first:
 
 ## Notes for teammates
 
-- The backend currently implements authentication and current-user retrieval, not the full banking domain yet.
+- The backend currently implements authentication, current-user retrieval, and employee customer approval with pending-customer listing and account creation.
 - Several resources described in `OpenAPI.yml` are planned but not implemented yet.
 - If you add a new feature, follow the same layer split and keep public endpoints under `/api`.
