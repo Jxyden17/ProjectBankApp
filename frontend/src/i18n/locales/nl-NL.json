@@ -45,7 +45,14 @@
   "accounts": {
     "label": "Rekeningen",
     "title": "Rekeningoverzicht",
-    "description": "Dit is een placeholderpagina voor rekeningsaldi, rekeningtypes en transactiegeschiedenis. De navigatielink is al geconfigureerd via Vue Router en klaar voor echte API-data."
+    "description": "Je saldi van betaal- en spaarrekening, IBANs en overboeklimieten.",
+    "combinedBalanceLabel": "Totaalsaldo",
+    "absoluteLimitLabel": "Absolute limiet",
+    "dailyLimitLabel": "Daglimiet",
+    "checkingType": "Betaalrekening",
+    "savingsType": "Spaarrekening",
+    "emptyTitle": "Nog geen rekeningen",
+    "emptyDescription": "Je rekeningen verschijnen hier zodra een medewerker je profiel goedkeurt."
   },
   "transfers": {
     "label": "Overboekingen",
