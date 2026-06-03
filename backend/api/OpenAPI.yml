@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: Banking Application API
-  version: 2.4.0
+  version: 2.5.0
   description: |
     REST API for a banking application with:
     - JWT authentication
@@ -319,6 +319,28 @@ components:
         updatedAt:
           type: string
           format: date-time
+
+    AccountOverviewResponse:
+      type: object
+      description: |
+        The authenticated user's own account overview: their own profile, each of their
+        accounts, and the combined balance across all of those accounts.
+      required:
+        - customer
+        - accounts
+        - combinedBalance
+      properties:
+        customer:
+          $ref: '#/components/schemas/UserResponse'
+        accounts:
+          type: array
+          items:
+            $ref: '#/components/schemas/AccountResponse'
+        combinedBalance:
+          type: number
+          format: double
+          description: Sum of the balances of all the user's accounts.
+          example: 175.50
 
     TransactionResponse:
       type: object
@@ -1146,6 +1168,33 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
         '403':
           description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /accounts/me:
+    get:
+      tags: [Accounts]
+      summary: Get the current user's own account overview
+      description: |
+        Returns the authenticated user's own accounts, including each account's balance, IBAN,
+        and transfer limits, the combined balance across all of their accounts, and their own
+        customer information.
+
+        Authorization rules:
+        - Requires a valid bearer token.
+        - Returns only the authenticated user's own accounts, scoped by the token subject.
+        - A user without accounts receives an empty account list and a zero combined balance.
+      responses:
+        '200':
+          description: Account overview for the current user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountOverviewResponse'
+        '401':
+          description: Unauthorized
           content:
             application/json:
               schema:

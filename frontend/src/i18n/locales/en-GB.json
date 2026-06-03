@@ -45,7 +45,14 @@
   "accounts": {
     "label": "Accounts",
     "title": "Accounts overview",
-    "description": "This is a placeholder page for account balances, account types, and transaction history. The navbar link is already wired through Vue Router and ready for real API data."
+    "description": "Your checking and savings balances, IBANs, and transfer limits.",
+    "combinedBalanceLabel": "Combined balance",
+    "absoluteLimitLabel": "Absolute limit",
+    "dailyLimitLabel": "Daily limit",
+    "checkingType": "Checking account",
+    "savingsType": "Savings account",
+    "emptyTitle": "No accounts yet",
+    "emptyDescription": "Your accounts will appear here once an employee approves your profile."
   },
   "transfers": {
     "label": "Transfers",
