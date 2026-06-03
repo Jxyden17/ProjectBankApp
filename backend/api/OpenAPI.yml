@@ -1,14 +1,14 @@
 openapi: 3.0.3
 info:
   title: Banking Application API
-  version: 2.3.0
+  version: 2.5.0
   description: |
     REST API for a banking application with:
     - JWT authentication
     - customer registration and login
     - employee approval workflow
     - account management
-    - transfers, deposits, and withdrawals
+    - separate transfer, deposit, and withdrawal creation endpoints
     - transaction history and filtering
     - short-lived JWT access tokens
     - refresh token rotation via secure HttpOnly cookie
@@ -60,29 +60,6 @@ components:
         path:
           type: string
           example: /api/auth/register
-
-    ResourceLinks:
-      type: object
-      properties:
-        self:
-          type: string
-          example: /accounts/1001
-        first:
-          type: string
-          nullable: true
-          example: /transactions?page=0&size=20
-        prev:
-          type: string
-          nullable: true
-          example: /transactions?page=1&size=20
-        next:
-          type: string
-          nullable: true
-          example: /transactions?page=3&size=20
-        last:
-          type: string
-          nullable: true
-          example: /transactions?page=9&size=20
 
     PageMetadata:
       type: object
@@ -244,8 +221,6 @@ components:
         updatedAt:
           type: string
           format: date-time
-        links:
-          $ref: '#/components/schemas/ResourceLinks'
 
     CustomerSummaryResponse:
       type: object
@@ -273,11 +248,13 @@ components:
         approved:
           type: boolean
           example: true
-        links:
-          $ref: '#/components/schemas/ResourceLinks'
 
     CustomerIbanLookupResponse:
       type: object
+      description: |
+        Lightweight lookup result returned to customers.
+        This response intentionally contains only the customer's name and IBAN.
+        It does not expose full customer profile data.
       required:
         - firstName
         - lastName
@@ -292,8 +269,6 @@ components:
         iban:
           type: string
           example: NL34INHO0009876543
-        links:
-          $ref: '#/components/schemas/ResourceLinks'
 
     AccountResponse:
       type: object
@@ -344,11 +319,36 @@ components:
         updatedAt:
           type: string
           format: date-time
-        links:
-          $ref: '#/components/schemas/ResourceLinks'
+
+    AccountOverviewResponse:
+      type: object
+      description: |
+        The authenticated user's own account overview: their own profile, each of their
+        accounts, and the combined balance across all of those accounts.
+      required:
+        - customer
+        - accounts
+        - combinedBalance
+      properties:
+        customer:
+          $ref: '#/components/schemas/UserResponse'
+        accounts:
+          type: array
+          items:
+            $ref: '#/components/schemas/AccountResponse'
+        combinedBalance:
+          type: number
+          format: double
+          description: Sum of the balances of all the user's accounts.
+          example: 175.50
 
     TransactionResponse:
       type: object
+      description: |
+        A recorded transaction. The nullable account fields have a fixed meaning per transaction type:
+        - TRANSFER: `fromAccountId` is the debited account and `toAccountId` is the credited account when the destination is an internal account.
+        - DEPOSIT: `toAccountId` is the credited account and `fromAccountId` is null.
+        - WITHDRAWAL: `fromAccountId` is the debited account and `toAccountId` is null.
       required:
         - id
         - amount
@@ -364,30 +364,37 @@ components:
           type: integer
           format: int64
           nullable: true
+          description: Set for TRANSFER and WITHDRAWAL transactions; null for DEPOSIT transactions.
           example: 1001
         toAccountId:
           type: integer
           format: int64
           nullable: true
+          description: Set for DEPOSIT transactions and internal TRANSFER transactions; null for WITHDRAWAL transactions.
           example: 1002
         amount:
           type: number
           format: double
+          description: Positive transaction amount.
           example: 250.00
         currency:
           type: string
+          description: ISO 4217 currency code.
           example: EUR
         transactionType:
           type: string
           enum: [TRANSFER, DEPOSIT, WITHDRAWAL]
+          description: Recorded type of the transaction. For creation, this type is derived from the POST endpoint.
         initiatedByUserId:
           type: integer
           format: int64
           nullable: true
+          description: User who initiated the transaction, if known.
           example: 1
         channel:
           type: string
           enum: [WEB, ATM, EMPLOYEE]
+          description: Channel through which the transaction was initiated.
           example: WEB
         timestamp:
           type: string
@@ -396,45 +403,116 @@ components:
           type: string
           nullable: true
           example: Monthly savings transfer
-        links:
-          $ref: '#/components/schemas/ResourceLinks'
 
-    CreateTransactionRequest:
+    TransferTransactionRequest:
       type: object
+      description: |
+        Request body for `POST /transactions/transfers`.
+        Creates a TRANSFER transaction. The client does not send `transactionType`; the type is derived from the endpoint.
+        A transfer debits `fromAccountId` and credits exactly one destination: either `toAccountId` or `destinationIban`.
       required:
-        - transactionType
+        - fromAccountId
         - amount
         - channel
+      oneOf:
+        - required:
+            - toAccountId
+        - required:
+            - destinationIban
       properties:
-        transactionType:
-          type: string
-          enum: [TRANSFER, DEPOSIT, WITHDRAWAL]
         fromAccountId:
           type: integer
           format: int64
-          nullable: true
+          description: Account that will be debited.
           example: 1001
         toAccountId:
           type: integer
           format: int64
-          nullable: true
+          description: Internal destination account. Use this for transfers to an account known by account ID.
           example: 1002
         destinationIban:
           type: string
-          nullable: true
+          description: Destination IBAN. Use this instead of `toAccountId` for IBAN-based transfers.
           example: NL34INHO0009876543
         amount:
           type: number
           format: double
+          minimum: 0.01
+          description: Positive amount to transfer.
           example: 100.00
         channel:
           type: string
           enum: [WEB, ATM, EMPLOYEE]
+          description: Channel through which the transfer is initiated. Business rules determine which channels are allowed for each user role.
           example: WEB
         description:
           type: string
           nullable: true
           example: Move to savings
+
+    DepositTransactionRequest:
+      type: object
+      description: |
+        Request body for `POST /transactions/deposits`.
+        Creates a DEPOSIT transaction. The client does not send `transactionType`; the type is derived from the endpoint.
+        A deposit credits `toAccountId`; `fromAccountId` is not accepted in this request.
+      required:
+        - toAccountId
+        - amount
+        - channel
+      properties:
+        toAccountId:
+          type: integer
+          format: int64
+          description: Account that will be credited.
+          example: 1001
+        amount:
+          type: number
+          format: double
+          minimum: 0.01
+          description: Positive amount to deposit.
+          example: 50.00
+        channel:
+          type: string
+          enum: [WEB, ATM, EMPLOYEE]
+          description: Channel through which the deposit is initiated. Business rules determine which channels are allowed for each user role.
+          example: ATM
+        description:
+          type: string
+          nullable: true
+          example: Cash deposit
+
+    WithdrawalTransactionRequest:
+      type: object
+      description: |
+        Request body for `POST /transactions/withdrawals`.
+        Creates a WITHDRAWAL transaction. The client does not send `transactionType`; the type is derived from the endpoint.
+        A withdrawal debits `fromAccountId`; `toAccountId` is not accepted in this request.
+      required:
+        - fromAccountId
+        - amount
+        - channel
+      properties:
+        fromAccountId:
+          type: integer
+          format: int64
+          description: Account that will be debited.
+          example: 1001
+        amount:
+          type: number
+          format: double
+          minimum: 0.01
+          description: Positive amount to withdraw.
+          example: 75.00
+        channel:
+          type: string
+          enum: [WEB, ATM, EMPLOYEE]
+          description: Channel through which the withdrawal is initiated. Business rules determine which channels are allowed for each user role.
+          example: ATM
+        description:
+          type: string
+          nullable: true
+          example: ATM withdrawal
 
     UpdateCustomerApprovalRequest:
       type: object
@@ -492,8 +570,6 @@ components:
             $ref: '#/components/schemas/CustomerSummaryResponse'
         page:
           $ref: '#/components/schemas/PageMetadata'
-        links:
-          $ref: '#/components/schemas/ResourceLinks'
 
     PagedCustomerIbanLookupResponse:
       type: object
@@ -507,8 +583,6 @@ components:
             $ref: '#/components/schemas/CustomerIbanLookupResponse'
         page:
           $ref: '#/components/schemas/PageMetadata'
-        links:
-          $ref: '#/components/schemas/ResourceLinks'
 
     PagedAccountResponse:
       type: object
@@ -522,8 +596,6 @@ components:
             $ref: '#/components/schemas/AccountResponse'
         page:
           $ref: '#/components/schemas/PageMetadata'
-        links:
-          $ref: '#/components/schemas/ResourceLinks'
 
     PagedTransactionResponse:
       type: object
@@ -537,8 +609,6 @@ components:
             $ref: '#/components/schemas/TransactionResponse'
         page:
           $ref: '#/components/schemas/PageMetadata'
-        links:
-          $ref: '#/components/schemas/ResourceLinks'
 
 security:
   - bearerAuth: []
@@ -1103,6 +1173,33 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
+  /accounts/me:
+    get:
+      tags: [Accounts]
+      summary: Get the current user's own account overview
+      description: |
+        Returns the authenticated user's own accounts, including each account's balance, IBAN,
+        and transfer limits, the combined balance across all of their accounts, and their own
+        customer information.
+
+        Authorization rules:
+        - Requires a valid bearer token.
+        - Returns only the authenticated user's own accounts, scoped by the token subject.
+        - A user without accounts receives an empty account list and a zero combined balance.
+      responses:
+        '200':
+          description: Account overview for the current user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountOverviewResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
   /accounts/{accountId}:
     get:
       tags: [Accounts]
@@ -1208,19 +1305,29 @@ paths:
       summary: List transactions
       description: |
         Returns a paginated list of transactions visible to the authenticated user.
+        This endpoint is read-only. New transactions are created through the type-specific endpoints:
+        - `POST /transactions/transfers` for TRANSFER transactions
+        - `POST /transactions/deposits` for DEPOSIT transactions
+        - `POST /transactions/withdrawals` for WITHDRAWAL transactions
+
+        Transaction type meaning:
+        - TRANSFER moves money from a source account to an internal account or destination IBAN.
+        - DEPOSIT adds money to a target account.
+        - WITHDRAWAL removes money from a source account.
 
         Authorization rules:
         - Customers may view only transactions related to their own accounts.
         - Employees may view all transactions in the system.
         - The optional customerId filter is intended for EMPLOYEE users.
 
-        Search and filter options based on requirements:
+        Search and filter options:
         - startDate
         - endDate
         - amountEq
         - amountLt
         - amountGt
         - iban
+        - transactionType
       parameters:
         - name: startDate
           in: query
@@ -1274,6 +1381,7 @@ paths:
           schema:
             type: string
             enum: [TRANSFER, DEPOSIT, WITHDRAWAL]
+          description: Filter by recorded transaction type. For creating transactions, use the dedicated POST endpoint for that type.
         - name: page
           in: query
           required: false
@@ -1315,27 +1423,51 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
+  /transactions/transfers:
     post:
       tags: [Transactions]
-      summary: Create a transaction
+      operationId: createTransferTransaction
+      summary: Create a transfer transaction
       description: |
-        Creates a transfer, deposit, or withdrawal.
-        Limits and role-based business rules are enforced by the backend.
+        Creates a TRANSFER transaction.
 
-        Authorization rules:
+        Required request fields:
+        - `fromAccountId`
+        - `amount`
+        - `channel`
+        - exactly one destination: `toAccountId` or `destinationIban`
+
+        Authorization and business rules:
         - Requires a valid bearer token.
-        - Customers may create only transactions allowed on their own accounts.
-        - Employees may create employee-initiated transactions according to business rules.
-        - Customers may not create transactions on accounts they do not own.
+        - Customers may create transfers only from accounts they own.
+        - Employees may create employee-initiated transfers according to business rules.
+        - Account ownership, active account status, approval status, daily limits and absolute transfer limits are enforced by the backend.
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CreateTransactionRequest'
+              $ref: '#/components/schemas/TransferTransactionRequest'
+            examples:
+              internalTransfer:
+                summary: Transfer to an internal account
+                value:
+                  fromAccountId: 1001
+                  toAccountId: 1002
+                  amount: 100.00
+                  channel: WEB
+                  description: Move to savings
+              ibanTransfer:
+                summary: Transfer to a destination IBAN
+                value:
+                  fromAccountId: 1001
+                  destinationIban: NL34INHO0009876543
+                  amount: 25.50
+                  channel: WEB
+                  description: Payment request
       responses:
         '201':
-          description: Transaction created successfully
+          description: Transfer transaction created successfully
           headers:
             Location:
               description: URL of the created transaction resource
@@ -1346,7 +1478,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/TransactionResponse'
         '400':
-          description: Invalid transaction request
+          description: Invalid transfer request
           content:
             application/json:
               schema:
@@ -1364,13 +1496,163 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
         '404':
-          description: Related account or customer not found
+          description: Source account or destination account not found
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
         '409':
-          description: Transaction conflicts with business rules
+          description: Transfer conflicts with business rules such as account limits or insufficient balance
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /transactions/deposits:
+    post:
+      tags: [Transactions]
+      operationId: createDepositTransaction
+      summary: Create a deposit transaction
+      description: |
+        Creates a DEPOSIT transaction.
+
+        Required request fields:
+        - `toAccountId`
+        - `amount`
+        - `channel`
+
+        Authorization and business rules:
+        - Requires a valid bearer token.
+        - Customers may create deposits only for accounts they are allowed to use.
+        - Employees may create employee-initiated deposits according to business rules.
+        - Account ownership, active account status and approval status are enforced by the backend.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DepositTransactionRequest'
+            examples:
+              atmDeposit:
+                summary: Deposit cash into an account
+                value:
+                  toAccountId: 1001
+                  amount: 50.00
+                  channel: ATM
+                  description: Cash deposit
+      responses:
+        '201':
+          description: Deposit transaction created successfully
+          headers:
+            Location:
+              description: URL of the created transaction resource
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransactionResponse'
+        '400':
+          description: Invalid deposit request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Target account not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Deposit conflicts with business rules
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /transactions/withdrawals:
+    post:
+      tags: [Transactions]
+      operationId: createWithdrawalTransaction
+      summary: Create a withdrawal transaction
+      description: |
+        Creates a WITHDRAWAL transaction.
+
+        Required request fields:
+        - `fromAccountId`
+        - `amount`
+        - `channel`
+
+        Authorization and business rules:
+        - Requires a valid bearer token.
+        - Customers may create withdrawals only from accounts they own.
+        - Employees may create employee-initiated withdrawals according to business rules.
+        - Account ownership, active account status, approval status, daily limits, absolute transfer limits and available balance are enforced by the backend.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WithdrawalTransactionRequest'
+            examples:
+              atmWithdrawal:
+                summary: Withdraw cash from an account
+                value:
+                  fromAccountId: 1001
+                  amount: 75.00
+                  channel: ATM
+                  description: ATM withdrawal
+      responses:
+        '201':
+          description: Withdrawal transaction created successfully
+          headers:
+            Location:
+              description: URL of the created transaction resource
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransactionResponse'
+        '400':
+          description: Invalid withdrawal request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Source account not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Withdrawal conflicts with business rules such as account limits or insufficient balance
           content:
             application/json:
               schema:
@@ -1420,4 +1702,3 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-                
