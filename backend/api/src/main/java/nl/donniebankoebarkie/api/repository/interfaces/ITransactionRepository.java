@@ -7,5 +7,5 @@ import java.util.List;
 import java.util.Optional;
 
 public interface ITransactionRepository extends JpaRepository<Transaction, Long>{
-    List<Transaction> findByInitiatedBy_UserId(Long id);
+    List<Transaction> findByInitiatedByUserId(Long id);
 }
