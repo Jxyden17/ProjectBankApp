@@ -16,10 +16,10 @@ public class Transaction {
     private long id;
 
     @Column(name = "from_account_id")
-    private long from_account_id;
+    private long fromAccountId;
 
     @Column(name = "to_account_id")
-    private long to_account_id;
+    private long toAccountId;
 
     @Column(name = "amount", nullable = false)
     private BigDecimal amount;
@@ -32,7 +32,7 @@ public class Transaction {
     private TransactionType transactionType;
 
     @Column(name = "initiated_by_user_id")
-    private long initiated_by_user_id;
+    private long initiatedByUserId;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "channel", nullable = false)
@@ -44,52 +44,28 @@ public class Transaction {
     @Column(name = "description")
     private String description;
 
-    public String getDescription() {
-        return description;
+    public long getId() {
+        return id;
     }
 
-    public void setDescription(String description) {
-        this.description = description;
+    public void setId(long id) {
+        this.id = id;
     }
 
-    public LocalDateTime getTimestamp() {
-        return timestamp;
+    public long getFromAccountId() {
+        return fromAccountId;
     }
 
-    public void setTimestamp(LocalDateTime timestamp) {
-        this.timestamp = timestamp;
+    public void setFromAccountId(long fromAccountId) {
+        this.fromAccountId = fromAccountId;
     }
 
-    public Channel getChannel() {
-        return channel;
+    public long getToAccountId() {
+        return toAccountId;
     }
 
-    public void setChannel(Channel channel) {
-        this.channel = channel;
-    }
-
-    public long getInitiated_by_user_id() {
-        return initiated_by_user_id;
-    }
-
-    public void setInitiated_by_user_id(long initiated_by_user_id) {
-        this.initiated_by_user_id = initiated_by_user_id;
-    }
-
-    public TransactionType getTransactionType() {
-        return transactionType;
-    }
-
-    public void setTransactionType(TransactionType transactionType) {
-        this.transactionType = transactionType;
-    }
-
-    public String getCurrency() {
-        return currency;
-    }
-
-    public void setCurrency(String currency) {
-        this.currency = currency;
+    public void setToAccountId(long toAccountId) {
+        this.toAccountId = toAccountId;
     }
 
     public BigDecimal getAmount() {
@@ -100,27 +76,51 @@ public class Transaction {
         this.amount = amount;
     }
 
-    public long getTo_account_id() {
-        return to_account_id;
+    public String getCurrency() {
+        return currency;
     }
 
-    public void setTo_account_id(long to_account_id) {
-        this.to_account_id = to_account_id;
+    public void setCurrency(String currency) {
+        this.currency = currency;
     }
 
-    public long getFrom_account_id() {
-        return from_account_id;
+    public TransactionType getTransactionType() {
+        return transactionType;
     }
 
-    public void setFrom_account_id(long from_account_id) {
-        this.from_account_id = from_account_id;
+    public void setTransactionType(TransactionType transactionType) {
+        this.transactionType = transactionType;
     }
 
-    public long getId() {
-        return id;
+    public long getInitiatedByUserId() {
+        return initiatedByUserId;
     }
 
-    public void setId(long id) {
-        this.id = id;
+    public void setInitiatedByUserId(long initiatedByUserId) {
+        this.initiatedByUserId = initiatedByUserId;
+    }
+
+    public Channel getChannel() {
+        return channel;
+    }
+
+    public void setChannel(Channel channel) {
+        this.channel = channel;
+    }
+
+    public LocalDateTime getTimestamp() {
+        return timestamp;
+    }
+
+    public void setTimestamp(LocalDateTime timestamp) {
+        this.timestamp = timestamp;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
     }
 }
