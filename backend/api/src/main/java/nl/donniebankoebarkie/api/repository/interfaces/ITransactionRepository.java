@@ -9,5 +9,4 @@ import java.util.Optional;
 
 public interface ITransactionRepository extends JpaRepository<Transaction, Long>{
     List<Transaction> findByInitiatedByUserId(Long id);
-    Optional<Transaction> findById(Long id);
 }
