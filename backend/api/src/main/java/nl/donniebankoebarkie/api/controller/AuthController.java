@@ -36,6 +36,7 @@ public class AuthController {
         this.secureRefreshCookie = applicationEnvironment.isProduction();
     }
 
+    // Registers a new customer and returns the created user location.
     @PostMapping("/register")
     public ResponseEntity<UserResponse> register(@Valid @RequestBody RegisterRequest request) {
         UserResponse response = authService.register(request);
@@ -49,12 +50,14 @@ public class AuthController {
                 .body(response);
     }
 
+    // Authenticates a user and stores the refresh token in an HttpOnly cookie.
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(@RequestBody LoginRequest request) {
         LoginResult result = authService.login(request);
         return okWithRefreshCookie(result.response(), result.refreshToken(), result.refreshTokenExpiresIn());
     }
 
+    // Rotates the refresh token from the cookie and returns a new access token.
     @PostMapping("/refresh")
     public ResponseEntity<RefreshResponse> refresh(
             @CookieValue(name = REFRESH_COOKIE_NAME, required = false) String refreshToken) {
@@ -62,6 +65,7 @@ public class AuthController {
         return okWithRefreshCookie(result.response(), result.refreshToken(), result.refreshTokenExpiresIn());
     }
 
+    // Revokes the current refresh token and clears the browser cookie.
     @PostMapping("/logout")
     public ResponseEntity<Void> logout(
             @CookieValue(name = REFRESH_COOKIE_NAME, required = false) String refreshToken) {
@@ -71,12 +75,14 @@ public class AuthController {
                 .build();
     }
 
+    // Adds the refresh cookie consistently to successful auth responses.
     private <T> ResponseEntity<T> okWithRefreshCookie(T body, String refreshToken, long maxAgeSeconds) {
         return ResponseEntity.ok()
                 .header(HttpHeaders.SET_COOKIE, buildRefreshCookie(refreshToken, maxAgeSeconds).toString())
                 .body(body);
     }
 
+    // Builds the refresh cookie; Secure is only enabled in production for local development support.
     private ResponseCookie buildRefreshCookie(String refreshToken, long maxAgeSeconds) {
         return ResponseCookie.from(REFRESH_COOKIE_NAME, refreshToken)
                 .httpOnly(true)
@@ -87,6 +93,7 @@ public class AuthController {
                 .build();
     }
 
+    // Expires the refresh cookie on the client after logout.
     private ResponseCookie clearRefreshCookie() {
         return ResponseCookie.from(REFRESH_COOKIE_NAME, "")
                 .httpOnly(true)

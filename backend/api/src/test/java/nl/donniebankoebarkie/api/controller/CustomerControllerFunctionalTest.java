@@ -19,7 +19,9 @@ import java.util.List;
 
 import static org.hamcrest.Matchers.matchesPattern;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -152,6 +154,34 @@ class CustomerControllerFunctionalTest {
     }
 
     @Test
+    void approveCustomerRollsBackApprovalWhenAccountCreationFails() {
+        Long employeeId = createUser("employee.rollback@example.com", "900000014", UserRole.EMPLOYEE, true);
+        Long customerId = createUser("pending.rollback@example.com", "900000015", UserRole.CUSTOMER, false);
+
+        assertThrows(
+                Exception.class,
+                () -> mockMvc.perform(patch("/api/customers/{customerId}/approval", customerId)
+                        .header("Authorization", "Bearer " + tokenFor(employeeId, "employee.rollback@example.com", UserRole.EMPLOYEE, true))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(approvalRequestWithOverflowingAccountLimit()))
+        );
+
+        Boolean approved = jdbcTemplate.queryForObject(
+                "SELECT is_approved FROM users WHERE id = ?",
+                Boolean.class,
+                customerId
+        );
+        Integer accountCount = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM accounts WHERE user_id = ?",
+                Integer.class,
+                customerId
+        );
+
+        assertFalse(approved);
+        assertEquals(0, accountCount);
+    }
+
+    @Test
     void approveCustomerRejectsAlreadyApprovedCustomer() throws Exception {
         Long employeeId = createUser("employee.conflict@example.com", "900000006", UserRole.EMPLOYEE, true);
         Long customerId = createUser("already.approved@example.com", "900000007", UserRole.CUSTOMER, true);
@@ -245,6 +275,18 @@ class CustomerControllerFunctionalTest {
                 {
                   "approved": true,
                   "checkingAbsoluteTransferLimit": -500.00,
+                  "checkingDailyTransferLimit": 1000.00,
+                  "savingsAbsoluteTransferLimit": 0.00,
+                  "savingsDailyTransferLimit": 5000.00
+                }
+                """;
+    }
+
+    private String approvalRequestWithOverflowingAccountLimit() {
+        return """
+                {
+                  "approved": true,
+                  "checkingAbsoluteTransferLimit": 999999999999999999999999999.00,
                   "checkingDailyTransferLimit": 1000.00,
                   "savingsAbsoluteTransferLimit": 0.00,
                   "savingsDailyTransferLimit": 5000.00

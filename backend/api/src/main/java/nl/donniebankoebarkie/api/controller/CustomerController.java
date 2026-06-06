@@ -25,6 +25,7 @@ public class CustomerController {
         this.customerService = customerService;
     }
 
+    // Lists customers that still need employee approval.
     @GetMapping("/pending")
     @PreAuthorize("hasRole('EMPLOYEE')")
     public PagedCustomerSummaryResponse listPendingCustomers(
@@ -34,6 +35,7 @@ public class CustomerController {
         return customerService.listPendingCustomers(page, size);
     }
 
+    // Approves a pending customer and creates the required customer accounts.
     @PatchMapping("/{customerId}/approval")
     @PreAuthorize("hasRole('EMPLOYEE')")
     public CustomerApprovalResponse approveCustomer(

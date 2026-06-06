@@ -29,7 +29,6 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
-@Transactional
 public class CustomerService implements ICustomerService {
     private static final int MAX_IBAN_GENERATION_ATTEMPTS = 20;
     private static final BigDecimal INITIAL_BALANCE = BigDecimal.ZERO;
@@ -43,7 +42,9 @@ public class CustomerService implements ICustomerService {
         this.accountRepository = accountRepository;
     }
 
+    // Returns pending customers with bounded pagination to avoid overly large pages.
     @Override
+    @Transactional(readOnly = true)
     public PagedCustomerSummaryResponse listPendingCustomers(int page, int size) {
         int sanitizedPage = Math.max(page, 0);
         int sanitizedSize = Math.min(Math.max(size, 1), 100);
@@ -70,7 +71,9 @@ public class CustomerService implements ICustomerService {
         );
     }
 
+    // Approves a customer and creates both accounts in one transaction.
     @Override
+    @Transactional
     public CustomerApprovalResponse approveCustomer(
             Long customerId,
             Long approvedByUserId,
@@ -102,12 +105,14 @@ public class CustomerService implements ICustomerService {
         );
     }
 
+    // Ensures this endpoint is only used for approval, not rejection.
     private void validateApprovalRequest(UpdateCustomerApprovalRequest request) {
         if (!Boolean.TRUE.equals(request.approved())) {
             throw new BadRequestException("Customer approval must be true.");
         }
     }
 
+    // Loads an unapproved customer and rejects employees or already approved users.
     private User getPendingCustomer(Long customerId) {
         User customer = authRepository.findById(customerId)
                 .filter(user -> user.getRole() == UserRole.CUSTOMER)
@@ -120,6 +125,7 @@ public class CustomerService implements ICustomerService {
         return customer;
     }
 
+    // Marks the customer as approved and records the approving employee.
     private User approveCustomerRecord(User customer, Long approvedByUserId, LocalDateTime approvedAt) {
         customer.setApproved(true);
         customer.setApprovedByUserId(approvedByUserId);
@@ -129,6 +135,7 @@ public class CustomerService implements ICustomerService {
         return authRepository.save(customer);
     }
 
+    // Persists a new account for the approved customer.
     private Account createAccount(
             Long userId,
             AccountType accountType,
@@ -145,6 +152,7 @@ public class CustomerService implements ICustomerService {
         ));
     }
 
+    // Builds a zero-balance active account with the requested limits.
     private Account newAccount(
             Long userId,
             AccountType accountType,
@@ -165,6 +173,7 @@ public class CustomerService implements ICustomerService {
         return account;
     }
 
+    // Tries a limited number of random IBANs to avoid an endless collision loop.
     private String generateUniqueIban() {
         for (int attempt = 0; attempt < MAX_IBAN_GENERATION_ATTEMPTS; attempt++) {
             String iban = "NL%02dINHO%010d".formatted(
