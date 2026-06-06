@@ -16,7 +16,8 @@ public interface ITransactionService {
             LocalDate startDate, LocalDate endDate,
             BigDecimal amountEq, BigDecimal amountLt, BigDecimal amountGt,
             String iban, Long customerId, TransactionType transactionType,
-            int page, int size);
+            int page, int size,
+            AuthenticatedUser authenticatedUser);
 
     TransactionResponse getTransaction(Long transactionId, AuthenticatedUser authenticatedUser);
 

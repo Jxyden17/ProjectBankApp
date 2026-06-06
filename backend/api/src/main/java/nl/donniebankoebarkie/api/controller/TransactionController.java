@@ -45,11 +45,12 @@ public class TransactionController {
             @RequestParam(required = false) Long customerId,
             @RequestParam(required = false) TransactionType transactionType,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size
+            @RequestParam(defaultValue = "20") int size,
+            @AuthenticationPrincipal AuthenticatedUser authenticatedUser
     ) {
         return transactionService.listTransactions(
                 startDate, endDate, amountEq, amountLt, amountGt,
-                iban, customerId, transactionType, page, size);
+                iban, customerId, transactionType, page, size, authenticatedUser);
     }
 
     @GetMapping("/{transactionId}")

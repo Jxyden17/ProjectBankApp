@@ -49,14 +49,31 @@ public class TransactionService implements ITransactionService {
             LocalDate startDate, LocalDate endDate,
             BigDecimal amountEq, BigDecimal amountLt,
             BigDecimal amountGt, String iban, Long customerId,
-            TransactionType transactionType, int page, int size) {
+            TransactionType transactionType, int page, int size,
+            AuthenticatedUser authenticatedUser) {
         int sanitizedPage = Math.max(page, 0);
         int sanitizedSize = Math.min(Math.max(size, 1), 100);
         PageRequest pageRequest = PageRequest.of(sanitizedPage, sanitizedSize,
                 Sort.by(Sort.Order.desc("timestamp")));
+        
+        final boolean isCustomer = authenticatedUser.role() != UserRole.EMPLOYEE;
+        final List<Long> ownAccountIds = isCustomer
+                ? accountRepository.findByUserId(authenticatedUser.userId())
+                .stream().map(Account::getId).toList()
+                : null;
 
         Specification<Transaction> spec = (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
+
+            if (isCustomer) {
+                predicates.add(cb.or(
+                        root.get("fromAccountId").in(ownAccountIds),
+                        root.get("toAccountId").in(ownAccountIds)
+                ));
+            } else {
+                if (customerId != null) { predicates.add(cb.equal(root.get("initiatedByUserId"), customerId)); }
+                if (iban != null && !iban.isBlank()) { predicates.add(ibanPredicate(root, query, cb, iban)); }
+            }
 
             if (startDate != null) { predicates.add(cb.greaterThanOrEqualTo(root.get("timestamp"), startDate.atStartOfDay())); }
             if (endDate != null) { predicates.add(cb.lessThan(root.get("timestamp"), endDate.plusDays(1).atStartOfDay())); }
@@ -64,23 +81,6 @@ public class TransactionService implements ITransactionService {
             if (amountLt != null) { predicates.add(cb.lessThan(root.get("amount"), amountLt)); }
             if (amountGt != null) { predicates.add(cb.greaterThan(root.get("amount"), amountGt)); }
             if (transactionType != null) { predicates.add(cb.equal(root.get("transactionType"), transactionType)); }
-            if (customerId != null) { predicates.add(cb.equal(root.get("initiatedByUserId"), customerId)); }
-            if (iban != null && !iban.isBlank()) {
-                var fromAccountSubquery = query.subquery(Long.class);
-                var fromAccountRoot = fromAccountSubquery.from(Account.class);
-                fromAccountSubquery.select(fromAccountRoot.get("id"))
-                        .where(cb.equal(fromAccountRoot.get("iban"), iban));
-
-                var toAccountSubquery = query.subquery(Long.class);
-                var toAccountRoot = toAccountSubquery.from(Account.class);
-                toAccountSubquery.select(toAccountRoot.get("id"))
-                        .where(cb.equal(toAccountRoot.get("iban"), iban));
-
-                predicates.add(cb.or(
-                        root.get("fromAccountId").in(fromAccountSubquery),
-                        root.get("toAccountId").in(toAccountSubquery)
-                ));
-            }
 
             return cb.and(predicates.toArray(new Predicate[0]));
         };
@@ -204,6 +204,25 @@ public class TransactionService implements ITransactionService {
         if (!involved) {
             throw new ResourceNotFoundException("Transaction not found.");
         }
+    }
+
+    private Predicate ibanPredicate(
+            jakarta.persistence.criteria.Root<Transaction> root,
+            jakarta.persistence.criteria.CriteriaQuery<?> query,
+            jakarta.persistence.criteria.CriteriaBuilder cb,
+            String iban) {
+        var fromSub = query.subquery(Long.class);
+        var fromRoot = fromSub.from(Account.class);
+        fromSub.select(fromRoot.get("id")).where(cb.equal(fromRoot.get("iban"), iban));
+
+        var toSub = query.subquery(Long.class);
+        var toRoot = toSub.from(Account.class);
+        toSub.select(toRoot.get("id")).where(cb.equal(toRoot.get("iban"), iban));
+
+        return cb.or(
+                root.get("fromAccountId").in(fromSub),
+                root.get("toAccountId").in(toSub)
+        );
     }
 
     private void validateTransferRequest(TransferTransactionRequest request) {
