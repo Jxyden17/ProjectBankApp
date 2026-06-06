@@ -6,6 +6,7 @@ import nl.donniebankoebarkie.api.dto.transaction.request.WithdrawalTransactionRe
 import nl.donniebankoebarkie.api.dto.transaction.response.PagedTransactionResponse;
 import nl.donniebankoebarkie.api.dto.transaction.response.TransactionResponse;
 import nl.donniebankoebarkie.api.model.enums.TransactionType;
+import nl.donniebankoebarkie.api.security.AuthenticatedUser;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -17,11 +18,11 @@ public interface ITransactionService {
             String iban, Long customerId, TransactionType transactionType,
             int page, int size);
 
-    TransactionResponse getTransaction(Long transactionId);
+    TransactionResponse getTransaction(Long transactionId, AuthenticatedUser authenticatedUser);
 
-    TransactionResponse createTransfer(TransferTransactionRequest request, Long initiatedByUserId);
+    TransactionResponse createTransfer(TransferTransactionRequest request, AuthenticatedUser authenticatedUser);
 
-    TransactionResponse createDeposit(DepositTransactionRequest request, Long initiatedByUserId);
+    TransactionResponse createDeposit(DepositTransactionRequest request, AuthenticatedUser authenticatedUser);
 
-    TransactionResponse createWithdrawal(WithdrawalTransactionRequest request, Long initiatedByUserId);
+    TransactionResponse createWithdrawal(WithdrawalTransactionRequest request, AuthenticatedUser authenticatedUser);
 }
