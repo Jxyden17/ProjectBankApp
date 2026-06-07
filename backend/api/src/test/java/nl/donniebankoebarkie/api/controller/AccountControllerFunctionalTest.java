@@ -10,6 +10,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
@@ -20,6 +21,7 @@ import java.time.LocalDateTime;
 import static org.hamcrest.Matchers.matchesPattern;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -195,6 +197,97 @@ class AccountControllerFunctionalTest {
                         .header("Authorization", "Bearer " + tokenFor(employeeId, "employee.missing@example.com", UserRole.EMPLOYEE, true)))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.status").value(404));
+    }
+
+    @Test
+    void updateAccountRejectsRequestsWithoutBearerToken() throws Exception {
+        mockMvc.perform(patch("/api/accounts/{accountId}", 1)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(updateBody()))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.status").value(401));
+    }
+
+    @Test
+    void updateAccountRejectsCustomerBearerToken() throws Exception {
+        Long customerId = createUser("customer.patch@example.com", "900400001", UserRole.CUSTOMER, true);
+        Long accountId = createAccount(customerId, AccountType.CHECKING, "NL30INHO0000000030", new BigDecimal("100.00"));
+
+        mockMvc.perform(patch("/api/accounts/{accountId}", accountId)
+                        .header("Authorization", "Bearer " + tokenFor(customerId, "customer.patch@example.com", UserRole.CUSTOMER, true))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(updateBody()))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.status").value(403));
+    }
+
+    @Test
+    void updateAccountLetsEmployeesUpdateLimitsAndStatus() throws Exception {
+        Long employeeId = createUser("employee.patch@example.com", "900400002", UserRole.EMPLOYEE, true);
+        Long customerId = createUser("target.patch@example.com", "900400003", UserRole.CUSTOMER, true);
+        Long accountId = createAccount(customerId, AccountType.CHECKING, "NL31INHO0000000031", new BigDecimal("100.00"));
+
+        mockMvc.perform(patch("/api/accounts/{accountId}", accountId)
+                        .header("Authorization", "Bearer " + tokenFor(employeeId, "employee.patch@example.com", UserRole.EMPLOYEE, true))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "absoluteTransferLimit": -250.00,
+                                  "dailyTransferLimit": 1500.00,
+                                  "isActive": false
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(accountId))
+                .andExpect(jsonPath("$.isActive").value(false));
+
+        BigDecimal dailyLimit = jdbcTemplate.queryForObject(
+                "SELECT daily_transfer_limit FROM accounts WHERE id = ?", BigDecimal.class, accountId);
+        Boolean active = jdbcTemplate.queryForObject(
+                "SELECT is_active FROM accounts WHERE id = ?", Boolean.class, accountId);
+
+        assertEquals(0, new BigDecimal("1500.00").compareTo(dailyLimit));
+        assertEquals(false, active);
+    }
+
+    @Test
+    void updateAccountRejectsNegativeDailyLimit() throws Exception {
+        Long employeeId = createUser("employee.patchbad@example.com", "900400004", UserRole.EMPLOYEE, true);
+        Long customerId = createUser("target.patchbad@example.com", "900400005", UserRole.CUSTOMER, true);
+        Long accountId = createAccount(customerId, AccountType.CHECKING, "NL32INHO0000000032", new BigDecimal("100.00"));
+
+        mockMvc.perform(patch("/api/accounts/{accountId}", accountId)
+                        .header("Authorization", "Bearer " + tokenFor(employeeId, "employee.patchbad@example.com", UserRole.EMPLOYEE, true))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "dailyTransferLimit": -1.00
+                                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400));
+    }
+
+    @Test
+    void updateAccountReturnsNotFoundForUnknownAccount() throws Exception {
+        Long employeeId = createUser("employee.patchmissing@example.com", "900400006", UserRole.EMPLOYEE, true);
+
+        mockMvc.perform(patch("/api/accounts/{accountId}", 999999)
+                        .header("Authorization", "Bearer " + tokenFor(employeeId, "employee.patchmissing@example.com", UserRole.EMPLOYEE, true))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(updateBody()))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(404));
+    }
+
+    private String updateBody() {
+        return """
+                {
+                  "absoluteTransferLimit": -250.00,
+                  "dailyTransferLimit": 1500.00,
+                  "isActive": false
+                }
+                """;
     }
 
     private double combinedBalanceOf(MvcResult result) throws Exception {

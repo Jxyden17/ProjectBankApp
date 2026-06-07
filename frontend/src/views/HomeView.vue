@@ -43,7 +43,7 @@
 
         <div v-if="!auth.isRestrictedCustomer.value" class="mt-6 flex flex-wrap gap-3">
           <RouterLink
-            to="/accounts"
+            to="/accounts/me"
             class="rounded-full bg-white px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-slate-100"
           >
             {{ $t('nav.accounts') }}

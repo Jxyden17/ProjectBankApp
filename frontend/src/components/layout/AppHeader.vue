@@ -103,9 +103,9 @@ const props = defineProps({
     type: Array,
     default: () => [
       { labelKey: 'nav.home', to: '/' },
-      { labelKey: 'nav.accounts', to: '/accounts' },
+      { labelKey: 'nav.accounts', to: '/accounts/me' },
       { labelKey: 'nav.transfers', to: '/transfers' },
-      { labelKey: 'nav.accountsDirectory', to: '/accounts/directory', employeeOnly: true },
+      { labelKey: 'nav.accountsDirectory', to: '/accounts', employeeOnly: true },
       { labelKey: 'nav.approvals', to: '/customers/pending', employeeOnly: true },
     ],
   },
