@@ -54,6 +54,7 @@ public class AuthService implements IAuthService {
         this.jwtProperties = jwtProperties;
     }
 
+    // Creates a new unapproved customer account after checking unique identity fields.
     @Override
     public UserResponse register(RegisterRequest request) {
         validateUniqueRegistration(request);
@@ -61,6 +62,7 @@ public class AuthService implements IAuthService {
         return UserMapper.toUserResponse(authRepository.save(user));
     }
 
+    // Validates credentials and issues access and refresh tokens.
     @Override
     public LoginResult login(LoginRequest request) {
         User user = getUserForLogin(request.email());
@@ -68,6 +70,7 @@ public class AuthService implements IAuthService {
         return createLoginResult(user);
     }
 
+    // Validates the refresh token and rotates it to limit token replay.
     @Override
     public RefreshResult refresh(String refreshToken) {
         String sanitizedRefreshToken = requireRefreshToken(refreshToken);
@@ -77,6 +80,7 @@ public class AuthService implements IAuthService {
         return rotateRefreshToken(storedToken, user);
     }
 
+    // Revokes the refresh token when present; missing tokens make logout idempotent.
     @Override
     public void logout(String refreshToken) {
         String sanitizedRefreshToken = sanitizeRefreshToken(refreshToken);
@@ -89,6 +93,7 @@ public class AuthService implements IAuthService {
                 .ifPresent(refreshTokenRepository::revoke);
     }
 
+    // Returns the authenticated user's public profile data.
     @Override
     public UserResponse getCurrentUser(Long userId) {
         return authRepository.findById(userId)
@@ -96,6 +101,7 @@ public class AuthService implements IAuthService {
                 .orElseThrow(() -> new ResourceNotFoundException("Authenticated user was not found."));
     }
 
+    // Prevents duplicate registrations for login and BSN identity fields.
     private void validateUniqueRegistration(RegisterRequest request) {
         if (authRepository.existsByEmail(request.email())) {
             throw new ConflictException("A user with that email already exists.");
@@ -105,6 +111,7 @@ public class AuthService implements IAuthService {
         }
     }
 
+    // Builds a customer user that starts unapproved until an employee approves it.
     private User createCustomerUser(RegisterRequest request) {
         LocalDateTime now = LocalDateTime.now();
         return new User(
@@ -124,17 +131,20 @@ public class AuthService implements IAuthService {
         );
     }
 
+    // Loads the user for authentication and hides whether the email exists.
     private User getUserForLogin(String email) {
         return authRepository.findByEmail(email)
                 .orElseThrow(() -> new AuthenticationFailedException("Invalid email or password."));
     }
 
+    // Checks the submitted password against the stored BCrypt hash.
     private void validatePassword(String password, User user) {
         if (!passwordEncoder.matches(password, user.getPasswordHash())) {
             throw new AuthenticationFailedException("Invalid email or password.");
         }
     }
 
+    // Creates the response DTO and persists the refresh token hash.
     private LoginResult createLoginResult(User user) {
         String rawRefreshToken = generateRefreshToken();
         saveRefreshToken(user.getId(), rawRefreshToken);
@@ -151,6 +161,7 @@ public class AuthService implements IAuthService {
         );
     }
 
+    // Requires a non-blank refresh token before repository lookup.
     private String requireRefreshToken(String refreshToken) {
         String sanitizedRefreshToken = sanitizeRefreshToken(refreshToken);
 
@@ -161,10 +172,12 @@ public class AuthService implements IAuthService {
         return sanitizedRefreshToken;
     }
 
+    // Trims cookie input while preserving null for optional logout handling.
     private String sanitizeRefreshToken(String refreshToken) {
         return refreshToken == null ? null : refreshToken.trim();
     }
 
+    // Loads a refresh token that is known, active, and not expired.
     private RefreshToken getUsableRefreshToken(String rawRefreshToken) {
         RefreshToken storedToken = refreshTokenRepository.findByTokenHash(hashToken(rawRefreshToken))
                 .orElseThrow(() -> new InvalidRefreshTokenException("Refresh token is missing or invalid."));
@@ -176,11 +189,13 @@ public class AuthService implements IAuthService {
         return storedToken;
     }
 
+    // Loads the token owner and fails refresh when the user no longer exists.
     private User getRefreshTokenUser(RefreshToken refreshToken) {
         return authRepository.findById(refreshToken.getUserId())
                 .orElseThrow(() -> new InvalidRefreshTokenException("Refresh token user was not found."));
     }
 
+    // Revokes the used refresh token and stores a replacement in the same transaction.
     private RefreshResult rotateRefreshToken(RefreshToken storedToken, User user) {
         refreshTokenRepository.revoke(storedToken);
         String rotatedRefreshToken = generateRefreshToken();
@@ -197,6 +212,7 @@ public class AuthService implements IAuthService {
         );
     }
 
+    // Stores only a hash of the refresh token so raw tokens are never persisted.
     private void saveRefreshToken(Long userId, String rawRefreshToken) {
         LocalDateTime now = LocalDateTime.now();
         RefreshToken token = new RefreshToken();
@@ -209,10 +225,12 @@ public class AuthService implements IAuthService {
         refreshTokenRepository.save(token);
     }
 
+    // Generates a long random token for refresh-token cookies.
     private String generateRefreshToken() {
         return UUID.randomUUID().toString().replace("-", "") + UUID.randomUUID().toString().replace("-", "");
     }
 
+    // Hashes refresh tokens before storage or lookup.
     private String hashToken(String rawToken) {
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");

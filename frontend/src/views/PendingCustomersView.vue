@@ -6,6 +6,8 @@
       :description="$t('pendingCustomers.description')"
     />
 
+    <CustomerTabs />
+
     <FeedbackBanner :message="successMessage" tone="success" />
     <FeedbackBanner :message="errorMessage" tone="error" />
 
@@ -115,6 +117,7 @@
 <script setup>
 import { onMounted, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import CustomerTabs from '../components/customers/CustomerTabs.vue'
 import PageHeader from '../components/ui/PageHeader.vue'
 import TextInput from '../components/ui/TextInput.vue'
 import Button from '../components/ui/Button.vue'
@@ -138,14 +141,17 @@ const approvingCustomerId = ref(null)
 const errorMessage = ref('')
 const successMessage = ref('')
 
+// Prepares the approval form defaults for one customer.
 const initializeApprovalForm = (customerId) => {
   approvalForms[customerId] = { ...defaultApprovalLimits }
 }
 
+// Creates approval forms for every pending customer returned by the API.
 const initializeApprovalForms = (customers) => {
   customers.forEach((customer) => initializeApprovalForm(customer.id))
 }
 
+// Loads the current pending approval queue.
 const loadPendingCustomers = async () => {
   isLoading.value = true
   errorMessage.value = ''
@@ -161,13 +167,16 @@ const loadPendingCustomers = async () => {
   }
 }
 
+// Converts decimal input strings into JSON numbers.
 const toAmount = (value) => Number.parseFloat(value)
 
+// Clears success and error messages before a new approval attempt.
 const clearFeedback = () => {
   errorMessage.value = ''
   successMessage.value = ''
 }
 
+// Builds the approval payload expected by the backend.
 const approvalPayloadFor = (customerId) => {
   const form = approvalForms[customerId]
 
@@ -180,17 +189,20 @@ const approvalPayloadFor = (customerId) => {
   }
 }
 
+// Removes an approved customer from the local queue.
 const removeApprovedCustomer = (customer) => {
   pendingCustomers.value = pendingCustomers.value.filter((item) => item.id !== customer.id)
   delete approvalForms[customer.id]
 }
 
+// Shows a localized success message after approval.
 const showApprovalSuccess = (customer) => {
   successMessage.value = t('pendingCustomers.approvalSuccess', {
     name: `${customer.firstName} ${customer.lastName}`,
   })
 }
 
+// Approves the customer and updates the local queue.
 const approve = async (customer) => {
   approvingCustomerId.value = customer.id
   clearFeedback()
