@@ -20,6 +20,12 @@ export const getCustomers = (params, accessToken) =>
     accessToken,
   })
 
+// Loads one employee-visible customer profile.
+export const getCustomer = (customerId, accessToken) =>
+  request(`/customers/${customerId}`, {
+    accessToken,
+  })
+
 // Loads customers waiting for employee approval.
 export const getPendingCustomers = (accessToken, params = {}) =>
   request(`/customers/pending${buildQuery(params)}`, {

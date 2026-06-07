@@ -13,13 +13,13 @@ import java.time.LocalDateTime;
 public class Transaction {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private long id;
+    private Long id;
 
     @Column(name = "from_account_id")
-    private long fromAccountId;
+    private Long fromAccountId;
 
     @Column(name = "to_account_id")
-    private long toAccountId;
+    private Long toAccountId;
 
     @Column(name = "amount", nullable = false)
     private BigDecimal amount;
@@ -32,7 +32,7 @@ public class Transaction {
     private TransactionType transactionType;
 
     @Column(name = "initiated_by_user_id")
-    private long initiatedByUserId;
+    private Long initiatedByUserId;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "channel", nullable = false)
@@ -44,27 +44,27 @@ public class Transaction {
     @Column(name = "description")
     private String description;
 
-    public long getId() {
+    public Long getId() {
         return id;
     }
 
-    public void setId(long id) {
+    public void setId(Long id) {
         this.id = id;
     }
 
-    public long getFromAccountId() {
+    public Long getFromAccountId() {
         return fromAccountId;
     }
 
-    public void setFromAccountId(long fromAccountId) {
+    public void setFromAccountId(Long fromAccountId) {
         this.fromAccountId = fromAccountId;
     }
 
-    public long getToAccountId() {
+    public Long getToAccountId() {
         return toAccountId;
     }
 
-    public void setToAccountId(long toAccountId) {
+    public void setToAccountId(Long toAccountId) {
         this.toAccountId = toAccountId;
     }
 
@@ -92,11 +92,11 @@ public class Transaction {
         this.transactionType = transactionType;
     }
 
-    public long getInitiatedByUserId() {
+    public Long getInitiatedByUserId() {
         return initiatedByUserId;
     }
 
-    public void setInitiatedByUserId(long initiatedByUserId) {
+    public void setInitiatedByUserId(Long initiatedByUserId) {
         this.initiatedByUserId = initiatedByUserId;
     }
 

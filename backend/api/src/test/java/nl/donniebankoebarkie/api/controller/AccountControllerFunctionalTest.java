@@ -103,12 +103,106 @@ class AccountControllerFunctionalTest {
         assertEquals(0.0, combinedBalanceOf(result), 0.001);
     }
 
+    @Test
+    void listAccountsRejectsRequestsWithoutBearerToken() throws Exception {
+        mockMvc.perform(get("/api/accounts"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.status").value(401))
+                .andExpect(jsonPath("$.path").value("/api/accounts"));
+    }
+
+    @Test
+    void listAccountsLetsEmployeesSeeEveryAccount() throws Exception {
+        Long employeeId = createUser("employee.list@example.com", "900200001", UserRole.EMPLOYEE, true);
+        Long firstCustomerId = createUser("first.list@example.com", "900200002", UserRole.CUSTOMER, true);
+        Long secondCustomerId = createUser("second.list@example.com", "900200003", UserRole.CUSTOMER, true);
+        createAccount(firstCustomerId, AccountType.CHECKING, "NL10INHO0000000010", new BigDecimal("100.00"));
+        createAccount(firstCustomerId, AccountType.SAVINGS, "NL11INHO0000000011", new BigDecimal("200.00"));
+        createAccount(secondCustomerId, AccountType.CHECKING, "NL12INHO0000000012", new BigDecimal("300.00"));
+
+        mockMvc.perform(get("/api/accounts")
+                        .header("Authorization", "Bearer " + tokenFor(employeeId, "employee.list@example.com", UserRole.EMPLOYEE, true)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(3));
+    }
+
+    @Test
+    void listAccountsReturnsOnlyTheCustomersOwnAccounts() throws Exception {
+        Long callerId = createUser("caller.scope@example.com", "900200009", UserRole.CUSTOMER, true);
+        Long otherId = createUser("other.scope@example.com", "900200010", UserRole.CUSTOMER, true);
+        createAccount(callerId, AccountType.CHECKING, "NL17INHO0000000017", new BigDecimal("100.00"));
+        createAccount(otherId, AccountType.CHECKING, "NL18INHO0000000018", new BigDecimal("999.00"));
+
+        mockMvc.perform(get("/api/accounts")
+                        .header("Authorization", "Bearer " + tokenFor(callerId, "caller.scope@example.com", UserRole.CUSTOMER, true)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].userId").value(callerId));
+    }
+
+    @Test
+    void getAccountByIdRejectsRequestsWithoutBearerToken() throws Exception {
+        mockMvc.perform(get("/api/accounts/{accountId}", 1))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.status").value(401))
+                .andExpect(jsonPath("$.path").value("/api/accounts/1"));
+    }
+
+    @Test
+    void getAccountByIdLetsEmployeesViewAnyAccount() throws Exception {
+        Long employeeId = createUser("employee.details@example.com", "900300001", UserRole.EMPLOYEE, true);
+        Long customerId = createUser("customer.details@example.com", "900300002", UserRole.CUSTOMER, true);
+        Long accountId = createAccount(customerId, AccountType.CHECKING, "NL20INHO0000000020", new BigDecimal("150.00"));
+
+        mockMvc.perform(get("/api/accounts/{accountId}", accountId)
+                        .header("Authorization", "Bearer " + tokenFor(employeeId, "employee.details@example.com", UserRole.EMPLOYEE, true)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(accountId))
+                .andExpect(jsonPath("$.userId").value(customerId))
+                .andExpect(jsonPath("$.iban").value("NL20INHO0000000020"))
+                .andExpect(jsonPath("$.accountType").value("CHECKING"));
+    }
+
+    @Test
+    void getAccountByIdLetsCustomersViewTheirOwnAccount() throws Exception {
+        Long customerId = createUser("owner.details@example.com", "900300003", UserRole.CUSTOMER, true);
+        Long accountId = createAccount(customerId, AccountType.SAVINGS, "NL21INHO0000000021", new BigDecimal("75.00"));
+
+        mockMvc.perform(get("/api/accounts/{accountId}", accountId)
+                        .header("Authorization", "Bearer " + tokenFor(customerId, "owner.details@example.com", UserRole.CUSTOMER, true)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(accountId))
+                .andExpect(jsonPath("$.userId").value(customerId));
+    }
+
+    @Test
+    void getAccountByIdForbidsCustomersFromViewingAnotherUsersAccount() throws Exception {
+        Long callerId = createUser("caller.details@example.com", "900300004", UserRole.CUSTOMER, true);
+        Long otherId = createUser("other.details@example.com", "900300005", UserRole.CUSTOMER, true);
+        Long otherAccountId = createAccount(otherId, AccountType.CHECKING, "NL22INHO0000000022", new BigDecimal("999.00"));
+
+        mockMvc.perform(get("/api/accounts/{accountId}", otherAccountId)
+                        .header("Authorization", "Bearer " + tokenFor(callerId, "caller.details@example.com", UserRole.CUSTOMER, true)))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.status").value(403));
+    }
+
+    @Test
+    void getAccountByIdReturnsNotFoundForUnknownAccount() throws Exception {
+        Long employeeId = createUser("employee.missing@example.com", "900300006", UserRole.EMPLOYEE, true);
+
+        mockMvc.perform(get("/api/accounts/{accountId}", 999999)
+                        .header("Authorization", "Bearer " + tokenFor(employeeId, "employee.missing@example.com", UserRole.EMPLOYEE, true)))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(404));
+    }
+
     private double combinedBalanceOf(MvcResult result) throws Exception {
         Number combinedBalance = JsonPath.read(result.getResponse().getContentAsString(), "$.combinedBalance");
         return combinedBalance.doubleValue();
     }
 
-    private void createAccount(Long userId, AccountType accountType, String iban, BigDecimal balance) {
+    private Long createAccount(Long userId, AccountType accountType, String iban, BigDecimal balance) {
         LocalDateTime now = LocalDateTime.now();
         jdbcTemplate.update("""
                 INSERT INTO accounts (
@@ -133,6 +227,8 @@ class AccountControllerFunctionalTest {
                 now,
                 now
         );
+
+        return jdbcTemplate.queryForObject("SELECT id FROM accounts WHERE iban = ?", Long.class, iban);
     }
 
     private Long createUser(String email, String bsnNumber, UserRole role, boolean approved) {

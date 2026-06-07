@@ -41,8 +41,19 @@ Currently implemented endpoints:
 - `POST /api/auth/refresh`
 - `POST /api/auth/logout`
 - `GET /api/users/me`
+- `GET /api/accounts/me`
+- `GET /api/accounts`
+- `GET /api/accounts/{accountId}`
+- `GET /api/customers`
+- `GET /api/customers/lookup`
 - `GET /api/customers/pending`
+- `GET /api/customers/{customerId}`
 - `PATCH /api/customers/{customerId}/approval`
+- `GET /api/transactions`
+- `GET /api/transactions/{transactionId}`
+- `POST /api/transactions/transfers`
+- `POST /api/transactions/deposits`
+- `POST /api/transactions/withdrawals`
 
 Example request body for `POST /api/auth/register`:
 
@@ -81,6 +92,34 @@ Login behavior:
 - successful login returns a short-lived bearer token in JSON
 - refresh token rotation is handled through an HttpOnly cookie
 - in the `prod` profile the refresh cookie is marked `Secure`
+
+## Customer and account flow
+
+Customer management is employee-facing except for customer IBAN lookup:
+
+- `CustomerController` lists customers with filters for approval status, name, and email
+- `/customers/pending` lists customers that still need approval
+- `/customers/{customerId}` returns one customer profile for employee detail views
+- approving a customer creates checking and savings accounts with the supplied transfer limits
+- `/customers/lookup` lets customers search active IBANs by name without exposing full profiles
+
+Account access is role-aware:
+
+- customers use `/accounts/me` for their own checking and savings overview
+- employees use `/accounts` to list customer accounts
+- `/accounts/{accountId}` returns one account when the authenticated user is allowed to see it
+
+## Transaction flow
+
+The transaction API supports:
+
+- filtered, paginated transaction listing
+- transaction detail lookup
+- customer transfers
+- employee deposits
+- employee withdrawals
+
+Created transaction responses include a `Location` header pointing to `/api/transactions/{transactionId}`.
 
 ## Configuration
 
@@ -135,11 +174,18 @@ The project currently has:
 - `AuthControllerTest` for controller unit tests
 - `AuthControllerFunctionalTest` for auth flow functional coverage
 - `AuthControllerProductionCookieFunctionalTest` for prod-only secure cookie behavior
+- `AccountControllerFunctionalTest` for account access rules
+- `CustomerControllerFunctionalTest` for customer listing, detail, and approval flows
+- `TransactionControllerFunctionalTest` for transaction listing and create endpoints
 - `AuthServiceTest` for service unit tests
+- `AccountServiceTest` for account service behavior
+- `CustomerServiceTest` for customer service behavior
+- `TransactionServiceTest` for transaction service behavior
 - `UserControllerFunctionalTest` for authenticated `/users/me` access rules
+- `SecurityConfigTest`, `CsrfDevelopmentFunctionalTest`, `CsrfProductionFunctionalTest`, and `SecurityExceptionResolverTest` for security behavior
 - `ApiApplicationTests` for application context loading
 
-This matches the current auth-first backend slice with both unit and higher-level functional coverage.
+This gives both unit and higher-level functional coverage across auth, customer approval, accounts, transactions, and security behavior.
 
 ## CI
 
@@ -162,6 +208,6 @@ If CI fails with H2 schema or auth test errors, check these files first:
 
 ## Notes for teammates
 
-- The backend currently implements authentication, current-user retrieval, and employee customer approval with pending-customer listing and account creation.
-- Several resources described in `OpenAPI.yml` are planned but not implemented yet.
+- The backend currently implements authentication, current-user retrieval, employee customer approval, customer listing/detail, account overview/detail, and transaction listing/create endpoints.
+- Keep `OpenAPI.yml` aligned when request or response contracts change.
 - If you add a new feature, follow the same layer split and keep public endpoints under `/api`.

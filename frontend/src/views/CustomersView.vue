@@ -58,15 +58,16 @@
     </div>
 
     <div v-else class="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-[0_20px_60px_-40px_rgba(15,23,42,0.28)]">
-      <div class="hidden grid-cols-[1.4fr_1.7fr_0.8fr] gap-4 border-b border-slate-100 bg-slate-50 px-6 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 md:grid">
+      <div class="hidden grid-cols-[1.3fr_1.6fr_0.8fr_0.7fr] gap-4 border-b border-slate-100 bg-slate-50 px-6 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 md:grid">
         <span>{{ $t('customers.customerColumn') }}</span>
         <span>{{ $t('customers.emailLabel') }}</span>
         <span>{{ $t('customers.statusColumn') }}</span>
+        <span></span>
       </div>
       <article
         v-for="customer in customers"
         :key="customer.id"
-        class="grid gap-3 border-b border-slate-100 px-6 py-5 last:border-b-0 md:grid-cols-[1.4fr_1.7fr_0.8fr] md:items-center"
+        class="grid gap-3 border-b border-slate-100 px-6 py-5 last:border-b-0 md:grid-cols-[1.3fr_1.6fr_0.8fr_0.7fr] md:items-center"
       >
         <div>
           <p class="text-base font-semibold text-slate-950">
@@ -83,6 +84,12 @@
         >
           {{ customer.approved ? $t('home.statusApproved') : $t('home.statusPending') }}
         </span>
+        <RouterLink
+          :to="{ name: 'customer-detail', params: { customerId: customer.id } }"
+          class="w-fit text-sm font-semibold text-emerald-600 transition hover:text-emerald-700 md:justify-self-end"
+        >
+          {{ $t('customers.detailsButton') }} →
+        </RouterLink>
       </article>
     </div>
 
@@ -102,6 +109,7 @@
 
 <script setup>
 import { onMounted, reactive, ref } from 'vue'
+import { RouterLink } from 'vue-router'
 import CustomerTabs from '../components/customers/CustomerTabs.vue'
 import PageHeader from '../components/ui/PageHeader.vue'
 import TextInput from '../components/ui/TextInput.vue'

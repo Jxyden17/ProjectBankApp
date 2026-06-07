@@ -16,12 +16,20 @@ This module contains the Vue frontend for ProjectBankApp.
 - Vue Router pages for:
   - `/`
   - `/accounts`
+  - `/accounts/directory`
+  - `/accounts/directory/:accountId`
   - `/transfers`
+  - `/customers`
+  - `/customers/approvals`
+  - `/customers/:customerId`
   - `/login`
   - `/register`
 - Session bootstrap through `/api/auth/refresh`
 - Login and registration forms backed by the backend auth API
+- Role-aware home content for customers, pending customers, and employees
 - Approval-aware route gating and navigation
+- Customer account overview backed by `/api/accounts/me`
+- Employee customer overview, customer detail, pending approval, account directory, and account detail screens
 - Tailwind-based styling instead of the default Vite starter UI
 
 ## Folder structure
@@ -33,10 +41,15 @@ Main frontend files:
 - `src/router/index.js` defines the routes
 - `src/composables/useAuth.js` centralizes auth state and access helpers
 - `src/services/authService.js` wraps the auth API calls
+- `src/services/accountService.js` wraps account API calls
+- `src/services/customerService.js` wraps customer API calls
 - `src/components/layout/AppHeader.vue` renders the approval-aware navigation
-- `src/views/HomeView.vue` shows the authenticated and pending-approval home states
+- `src/views/HomeView.vue` shows role-specific customer, pending-customer, and employee home states
 - `src/views/LoginView.vue` and `src/views/RegisterView.vue` handle auth forms
-- `src/views/AccountsView.vue` and `src/views/TransfersView.vue` are still placeholder protected pages
+- `src/views/AccountsView.vue` shows the authenticated customer's account overview
+- `src/views/AccountDirectoryView.vue` and `src/views/AccountDetailView.vue` support employee account lookup
+- `src/views/CustomersView.vue`, `src/views/CustomerDetailView.vue`, and `src/views/PendingCustomersView.vue` support employee customer management
+- `src/views/TransfersView.vue` is present but is not wired to transaction creation yet
 - `public/favicon.ico` is the site favicon
 
 ## Route access behavior
@@ -44,9 +57,11 @@ Main frontend files:
 - unauthenticated users are redirected to `/login` for protected routes
 - `/login` and `/register` are public routes
 - authenticated unapproved customers are restricted to `/`
-- authenticated approved customers and employees may access `/accounts` and `/transfers`
-- the header hides `Accounts` and `Transfers` for restricted customers
-- the home page shows a waiting-for-approval state for unapproved customers
+- authenticated approved customers may access `/accounts` and `/transfers`
+- authenticated employees may access `/customers`, `/customers/approvals`, `/customers/:customerId`, `/accounts/directory`, and `/accounts/directory/:accountId`
+- `/customers/pending` redirects to `/customers/approvals`
+- the header hides unavailable links for restricted customers
+- the home page shows different content for approved customers, pending customers, and employees
 
 ## Running locally
 
@@ -121,6 +136,6 @@ This gives you:
 
 ## Notes for teammates
 
-- `Accounts` and `Transfers` are still placeholder views behind the current route guard.
-- The home page is no longer an API playground; it reflects authenticated user state from the backend.
+- `Transfers` is still a presentational page; connect it to the transaction API before treating it as complete.
+- The home page is role-aware and should stay focused on user-facing actions, not implementation details.
 - When you connect more backend features, keep using the routed page structure instead of putting everything in `App.vue`.
