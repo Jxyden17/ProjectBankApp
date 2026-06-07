@@ -1,15 +1,20 @@
 package nl.donniebankoebarkie.api.controller;
 
+import nl.donniebankoebarkie.api.model.User;
+import nl.donniebankoebarkie.api.model.enums.UserRole;
+import nl.donniebankoebarkie.api.repository.interfaces.IAuthRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest(properties = {
@@ -26,22 +31,40 @@ class CsrfProductionFunctionalTest {
     @Autowired
     private MockMvc mockMvc;
 
+    @Autowired
+    private IAuthRepository authRepository;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
     @Test
-    void registerRejectsPostWithoutCsrfTokenInProduction() throws Exception {
-        mockMvc.perform(post("/api/auth/register")
+    void loginAcceptsPostWithoutCsrfTokenInProduction() throws Exception {
+        createApprovedCustomer();
+
+        mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
-                                  "firstName": "Csrf",
-                                  "lastName": "Production",
                                   "email": "csrf.production@example.com",
-                                  "password": "welkom123",
-                                  "phoneNumber": "+31600000000",
-                                  "bsnNumber": "900000020"
+                                  "password": "Welkom123"
                                 }
                                 """))
-                .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.status").value(403))
-                .andExpect(jsonPath("$.path").value("/api/auth/register"));
+                .andExpect(status().isOk());
+    }
+
+    private void createApprovedCustomer() {
+        LocalDateTime now = LocalDateTime.now();
+        User user = new User();
+        user.setFirstName("Csrf");
+        user.setLastName("Production");
+        user.setEmail("csrf.production@example.com");
+        user.setPasswordHash(passwordEncoder.encode("Welkom123"));
+        user.setPhoneNumber("+31600000000");
+        user.setBsnNumber("900000020");
+        user.setRole(UserRole.CUSTOMER);
+        user.setApproved(true);
+        user.setCreatedAt(now);
+        user.setUpdatedAt(now);
+        authRepository.save(user);
     }
 }

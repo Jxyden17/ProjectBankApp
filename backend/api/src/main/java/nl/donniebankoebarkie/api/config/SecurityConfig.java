@@ -24,12 +24,6 @@ public class SecurityConfig {
     private static final int ARGON2_MEMORY_IN_KIB = 19456;
     private static final int ARGON2_ITERATIONS = 2;
 
-    private final ApplicationEnvironment applicationEnvironment;
-
-    public SecurityConfig(ApplicationEnvironment applicationEnvironment) {
-        this.applicationEnvironment = applicationEnvironment;
-    }
-
     static {
         Security.addProvider(new BouncyCastleProvider());
     }
@@ -51,11 +45,7 @@ public class SecurityConfig {
             SecurityExceptionResolver securityExceptionResolver)
             throws Exception {
         return http
-                .csrf(csrf -> {
-                    if (!applicationEnvironment.isProduction()) {
-                        csrf.disable();
-                    }
-                })
+                .csrf(csrf -> csrf.disable())
                 .formLogin(form -> form.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authorize -> authorize
