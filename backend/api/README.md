@@ -93,6 +93,11 @@ Login behavior:
 - refresh token rotation is handled through an HttpOnly cookie
 - in the `prod` profile the refresh cookie is marked `Secure`
 
+CSRF behavior:
+- CSRF protection is disabled for the API because requests are authenticated with bearer tokens instead of browser sessions.
+- The refresh token cookie uses `HttpOnly` and `SameSite=Strict`, which prevents normal cross-site form or image requests from sending it.
+- 
+
 ## Customer and account flow
 
 Customer management is employee-facing except for customer IBAN lookup:

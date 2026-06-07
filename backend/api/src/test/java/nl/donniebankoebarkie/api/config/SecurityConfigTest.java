@@ -4,15 +4,12 @@ import org.junit.jupiter.api.Test;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.mock;
 
 class SecurityConfigTest {
 
     @Test
     void passwordEncoderUsesOwapsMinimumArgon2Parameters() {
-        PasswordEncoder passwordEncoder = new SecurityConfig(
-                mock(ApplicationEnvironment.class)
-        ).passwordEncoder();
+        PasswordEncoder passwordEncoder = new SecurityConfig().passwordEncoder();
 
         String encodedPassword = passwordEncoder.encode("welkom123");
 
