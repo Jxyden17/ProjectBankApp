@@ -49,7 +49,7 @@ class AuthControllerFunctionalTest {
                                 }
                                 """.formatted(STRONG_PASSWORD)))
                 .andExpect(status().isCreated())
-                .andExpect(header().string("Location", containsString("/api/users/")))
+                .andExpect(header().doesNotExist("Location"))
                 .andExpect(jsonPath("$.email").value("charlie.student@example.com"))
                 .andExpect(jsonPath("$.role").value("CUSTOMER"))
                 .andExpect(jsonPath("$.approved").value(false));

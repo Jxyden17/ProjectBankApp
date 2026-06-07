@@ -34,7 +34,6 @@ The matching test structure lives under `src/test/java/nl/donniebankoebarkie/api
 
 - All REST controllers are exposed under the global `/api` prefix
 - Controllers return DTOs instead of exposing entities directly
-- `Location` headers for created resources are built from the current request path
 
 Currently implemented endpoints:
 - `POST /api/auth/register`

@@ -4,9 +4,9 @@ import nl.donniebankoebarkie.api.dto.PageMetadata;
 
 import java.util.List;
 
-// Wraps customer summary results with pagination metadata.
-public record PagedCustomerSummaryResponse(
-        List<CustomerSummaryResponse> items,
+// Wraps IBAN lookup results with pagination metadata.
+public record PagedCustomerIbanLookupResponse(
+        List<CustomerIbanLookupResponse> items,
         PageMetadata page
 ) {
 }
