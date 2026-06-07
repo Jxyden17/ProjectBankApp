@@ -7,6 +7,7 @@
     "home": "Home",
     "accounts": "Rekeningen",
     "transfers": "Overboekingen",
+    "accountsDirectory": "Alle rekeningen",
     "approvals": "Goedkeuringen",
     "signIn": "Inloggen",
     "register": "Registreren",
@@ -53,6 +54,30 @@
     "savingsType": "Spaarrekening",
     "emptyTitle": "Nog geen rekeningen",
     "emptyDescription": "Je rekeningen verschijnen hier zodra een medewerker je profiel goedkeurt."
+  },
+  "accountsDirectory": {
+    "label": "Medewerker",
+    "title": "Rekeningenregister",
+    "description": "Alle klantrekeningen in één overzicht. Selecteer een rekening voor de volledige details.",
+    "ownerLabel": "Klant-ID",
+    "balanceLabel": "Saldo",
+    "statusActive": "Actief",
+    "statusInactive": "Inactief",
+    "detailsButton": "Details bekijken",
+    "emptyTitle": "Geen rekeningen gevonden",
+    "emptyDescription": "Er zijn nog geen rekeningen om te tonen.",
+    "resultsLabel": "Gevonden rekeningen: {count}"
+  },
+  "accountDetail": {
+    "label": "Medewerker",
+    "title": "Rekeningdetails",
+    "backButton": "Terug naar rekeningen",
+    "ownerLabel": "Klant-ID",
+    "statusLabel": "Status",
+    "statusActive": "Actief",
+    "statusInactive": "Inactief",
+    "createdAtLabel": "Aangemaakt",
+    "updatedAtLabel": "Bijgewerkt"
   },
   "transfers": {
     "label": "Overboekingen",

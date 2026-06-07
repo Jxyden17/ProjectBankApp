@@ -7,6 +7,7 @@
     "home": "Home",
     "accounts": "Accounts",
     "transfers": "Transfers",
+    "accountsDirectory": "All accounts",
     "approvals": "Approvals",
     "signIn": "Sign in",
     "register": "Register",
@@ -53,6 +54,30 @@
     "savingsType": "Savings account",
     "emptyTitle": "No accounts yet",
     "emptyDescription": "Your accounts will appear here once an employee approves your profile."
+  },
+  "accountsDirectory": {
+    "label": "Employee",
+    "title": "Accounts directory",
+    "description": "Every customer account at a glance. Select an account to view its full details.",
+    "ownerLabel": "Customer ID",
+    "balanceLabel": "Balance",
+    "statusActive": "Active",
+    "statusInactive": "Inactive",
+    "detailsButton": "View details",
+    "emptyTitle": "No accounts found",
+    "emptyDescription": "There are no accounts to show yet.",
+    "resultsLabel": "Accounts found: {count}"
+  },
+  "accountDetail": {
+    "label": "Employee",
+    "title": "Account details",
+    "backButton": "Back to accounts",
+    "ownerLabel": "Customer ID",
+    "statusLabel": "Status",
+    "statusActive": "Active",
+    "statusInactive": "Inactive",
+    "createdAtLabel": "Created",
+    "updatedAtLabel": "Updated"
   },
   "transfers": {
     "label": "Transfers",
