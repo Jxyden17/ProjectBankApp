@@ -1,6 +1,7 @@
 package nl.donniebankoebarkie.api.service;
 
 import nl.donniebankoebarkie.api.dto.account.AccountOverviewResponse;
+import nl.donniebankoebarkie.api.dto.account.AccountResponse;
 import nl.donniebankoebarkie.api.exception.ResourceNotFoundException;
 import nl.donniebankoebarkie.api.model.Account;
 import nl.donniebankoebarkie.api.model.User;
@@ -13,6 +14,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.access.AccessDeniedException;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -75,6 +77,73 @@ class AccountServiceTest {
         assertThrows(ResourceNotFoundException.class, () -> accountService.getOwnAccountOverview(99L));
 
         verify(accountRepository, never()).findByUserId(anyLong());
+    }
+
+    @Test
+    void listAccountsReturnsAllAccountsForEmployees() {
+        Account checking = account(1L, 7L, AccountType.CHECKING, new BigDecimal("150.00"));
+        Account savings = account(2L, 8L, AccountType.SAVINGS, new BigDecimal("25.50"));
+        when(accountRepository.findAll()).thenReturn(List.of(checking, savings));
+
+        List<AccountResponse> accounts = accountService.listAccounts(99L, UserRole.EMPLOYEE);
+
+        assertEquals(2, accounts.size());
+        assertEquals("NL01INHO0000000001", accounts.get(0).iban());
+        verify(accountRepository, never()).findByUserId(anyLong());
+    }
+
+    @Test
+    void listAccountsReturnsOnlyOwnAccountsForCustomers() {
+        Account own = account(1L, 7L, AccountType.CHECKING, new BigDecimal("150.00"));
+        when(accountRepository.findByUserId(7L)).thenReturn(List.of(own));
+
+        List<AccountResponse> accounts = accountService.listAccounts(7L, UserRole.CUSTOMER);
+
+        assertEquals(1, accounts.size());
+        assertEquals(7L, accounts.get(0).userId());
+        verify(accountRepository, never()).findAll();
+    }
+
+    @Test
+    void getAccountByIdReturnsAnyAccountForEmployees() {
+        Account account = account(5L, 7L, AccountType.CHECKING, new BigDecimal("100.00"));
+        when(accountRepository.findById(5L)).thenReturn(Optional.of(account));
+
+        AccountResponse response = accountService.getAccountById(5L, 99L, UserRole.EMPLOYEE);
+
+        assertEquals(5L, response.id());
+        assertEquals(7L, response.userId());
+    }
+
+    @Test
+    void getAccountByIdReturnsOwnAccountForCustomers() {
+        Account account = account(5L, 7L, AccountType.CHECKING, new BigDecimal("100.00"));
+        when(accountRepository.findById(5L)).thenReturn(Optional.of(account));
+
+        AccountResponse response = accountService.getAccountById(5L, 7L, UserRole.CUSTOMER);
+
+        assertEquals(5L, response.id());
+    }
+
+    @Test
+    void getAccountByIdDeniesCustomersViewingAnotherUsersAccount() {
+        Account account = account(5L, 7L, AccountType.CHECKING, new BigDecimal("100.00"));
+        when(accountRepository.findById(5L)).thenReturn(Optional.of(account));
+
+        assertThrows(
+                AccessDeniedException.class,
+                () -> accountService.getAccountById(5L, 8L, UserRole.CUSTOMER)
+        );
+    }
+
+    @Test
+    void getAccountByIdThrowsWhenAccountNotFound() {
+        when(accountRepository.findById(404L)).thenReturn(Optional.empty());
+
+        assertThrows(
+                ResourceNotFoundException.class,
+                () -> accountService.getAccountById(404L, 99L, UserRole.EMPLOYEE)
+        );
     }
 
     private User customer(Long id) {

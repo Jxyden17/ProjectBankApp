@@ -15,13 +15,11 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.mock.web.MockHttpServletRequest;
-import org.springframework.web.context.request.RequestContextHolder;
-import org.springframework.web.context.request.ServletRequestAttributes;
 
 import java.time.LocalDateTime;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
@@ -38,7 +36,7 @@ class AuthControllerTest {
     private AuthController authController;
 
     @Test
-    void registerReturnsCreatedUserAndLocationHeader() {
+    void registerReturnsCreatedUserWithoutLocationHeader() {
         RegisterRequest request = new RegisterRequest(
                 "Charlie",
                 "Student",
@@ -62,20 +60,12 @@ class AuthControllerTest {
                 LocalDateTime.of(2026, 4, 19, 10, 0)
         );
         when(authService.register(request)).thenReturn(response);
-        MockHttpServletRequest httpRequest = new MockHttpServletRequest("POST", "/api/auth/register");
-        RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(httpRequest));
 
-        try {
-            var entity = authController.register(request);
+        var entity = authController.register(request);
 
-            assertEquals(201, entity.getStatusCode().value());
-            assertEquals("Charlie", entity.getBody().firstName());
-            assertTrue(entity.getHeaders().getLocation() != null);
-            assertTrue(entity.getHeaders().getLocation().toString().contains("/api/users/3"));
-        }
-        finally {
-            RequestContextHolder.resetRequestAttributes();
-        }
+        assertEquals(201, entity.getStatusCode().value());
+        assertEquals("Charlie", entity.getBody().firstName());
+        assertNull(entity.getHeaders().getLocation());
     }
 
     @Test

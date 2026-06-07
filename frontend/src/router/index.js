@@ -1,7 +1,11 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import HomeView from '../views/HomeView.vue'
 import AccountsView from '../views/AccountsView.vue'
+import AccountDirectoryView from '../views/AccountDirectoryView.vue'
+import AccountDetailView from '../views/AccountDetailView.vue'
 import TransfersView from '../views/TransfersView.vue'
+import CustomersView from '../views/CustomersView.vue'
+import CustomerDetailView from '../views/CustomerDetailView.vue'
 import PendingCustomersView from '../views/PendingCustomersView.vue'
 import LoginView from '../views/LoginView.vue'
 import RegisterView from '../views/RegisterView.vue'
@@ -10,11 +14,38 @@ import { useAuth } from '../composables/useAuth'
 const routes = [
   { path: '/', name: 'home', component: HomeView },
   { path: '/accounts', name: 'accounts', component: AccountsView },
+  {
+    path: '/accounts/directory',
+    name: 'accounts-directory',
+    component: AccountDirectoryView,
+    meta: { employeeOnly: true },
+  },
+  {
+    path: '/accounts/directory/:accountId',
+    name: 'account-detail',
+    component: AccountDetailView,
+    props: true,
+    meta: { employeeOnly: true },
+  },
   { path: '/transfers', name: 'transfers', component: TransfersView },
   {
-    path: '/customers/pending',
-    name: 'pending-customers',
+    path: '/customers',
+    name: 'customers',
+    component: CustomersView,
+    meta: { employeeOnly: true },
+  },
+  {
+    path: '/customers/approvals',
+    name: 'customer-approvals',
     component: PendingCustomersView,
+    meta: { employeeOnly: true },
+  },
+  { path: '/customers/pending', redirect: '/customers/approvals' },
+  {
+    path: '/customers/:customerId',
+    name: 'customer-detail',
+    component: CustomerDetailView,
+    props: true,
     meta: { employeeOnly: true },
   },
   { path: '/login', name: 'login', component: LoginView, meta: { public: true } },

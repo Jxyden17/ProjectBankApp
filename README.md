@@ -5,11 +5,14 @@ ProjectBankApp is a student banking demo with:
 - a Vue 3 frontend in `frontend`
 - Docker Compose setups for a remote database flow and a local MariaDB flow
 
-The current implementation focuses on authentication and gated customer onboarding:
+The current implementation focuses on authentication, customer onboarding, and basic banking operations:
 - customer registration
 - JWT-based login and `/users/me`
 - refresh token rotation via HttpOnly cookie
 - frontend route gating for unapproved customers
+- employee customer approval with checking and savings account creation
+- customer and account overview/detail screens
+- backend transaction listing and create endpoints
 
 ## Repository layout
 
@@ -81,8 +84,19 @@ Currently implemented endpoints:
 - `POST /api/auth/refresh`
 - `POST /api/auth/logout`
 - `GET /api/users/me`
+- `GET /api/accounts/me`
+- `GET /api/accounts`
+- `GET /api/accounts/{accountId}`
+- `GET /api/customers`
+- `GET /api/customers/lookup`
 - `GET /api/customers/pending`
+- `GET /api/customers/{customerId}`
 - `PATCH /api/customers/{customerId}/approval`
+- `GET /api/transactions`
+- `GET /api/transactions/{transactionId}`
+- `POST /api/transactions/transfers`
+- `POST /api/transactions/deposits`
+- `POST /api/transactions/withdrawals`
 
 The backend test suite uses H2 and creates its own test users inside the tests instead of depending on shared app-level seed data.
 
@@ -97,7 +111,12 @@ The frontend uses:
 Current routes:
 - `/`
 - `/accounts`
+- `/accounts/directory`
+- `/accounts/directory/:accountId`
 - `/transfers`
+- `/customers`
+- `/customers/approvals`
+- `/customers/:customerId`
 - `/login`
 - `/register`
 
@@ -105,7 +124,9 @@ The frontend is now authentication-aware:
 - `/login` and `/register` are public
 - `/accounts` and `/transfers` require authentication
 - unapproved customers are restricted to `/`
-- approved customers and employees keep access to the protected routes
+- approved customers can use their account overview and transfers page
+- employees can use customer management, customer approvals, and the accounts directory
+- `/customers/pending` redirects to `/customers/approvals`
 
 ## Running parts separately
 
@@ -175,10 +196,11 @@ Important backend CI notes:
 
 ## Current status
 
-- The frontend has a working auth shell with login, registration, session restore, and approval-aware navigation.
-- The backend has a working auth slice with registration validation, login, refresh rotation, logout, and current-user lookup.
-- Employee customer approval with pending-customer listing and checking/savings account creation is implemented.
-- Account list/detail APIs and transfer APIs are still not implemented in the running backend.
+- The frontend has a working auth shell with login, registration, session restore, role-aware home content, and approval-aware navigation.
+- Customer-facing account overview is connected to the backend.
+- Employee-facing customer overview, customer detail, pending approvals, account directory, and account detail screens are connected to the backend.
+- The backend supports auth, current-user lookup, customer management, account overview/detail, and transaction listing/create endpoints.
+- The transfers page is present in the frontend, but it is not yet wired to the backend transaction create flow.
 
 For more detail, see:
 - [backend/api/README.md](backend/api/README.md)
