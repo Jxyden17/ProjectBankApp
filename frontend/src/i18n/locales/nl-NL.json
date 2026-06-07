@@ -45,7 +45,7 @@
   "accounts": {
     "label": "Rekeningen",
     "title": "Rekeningoverzicht",
-    "description": "Je saldi van betaal- en spaarrekening, IBANs en overboeklimieten.",
+    "description": "Je saldo van betaal- en spaarrekening, IBANs en overboeklimieten.",
     "combinedBalanceLabel": "Totaalsaldo",
     "absoluteLimitLabel": "Absolute limiet",
     "dailyLimitLabel": "Daglimiet",
