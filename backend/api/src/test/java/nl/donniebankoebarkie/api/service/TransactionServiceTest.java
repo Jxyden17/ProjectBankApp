@@ -38,6 +38,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -246,6 +247,7 @@ class TransactionServiceTest {
         Account toAccount = account(20L, 2L);
         when(accountRepository.findById(10L)).thenReturn(Optional.of(fromAccount));
         when(accountRepository.findById(20L)).thenReturn(Optional.of(toAccount));
+        when(accountRepository.save(any(Account.class))).thenAnswer(inv -> inv.getArgument(0));
         when(transactionRepository.save(any(Transaction.class))).thenAnswer(inv -> {
             Transaction t = inv.getArgument(0);
             t.setId(99L);
@@ -264,6 +266,11 @@ class TransactionServiceTest {
         assertEquals(1L, response.initiatedByUserId());
         assertEquals(Channel.WEB, response.channel());
         assertEquals("Test", response.description());
+
+        ArgumentCaptor<Account> accountCaptor = ArgumentCaptor.forClass(Account.class);
+        verify(accountRepository, times(2)).save(accountCaptor.capture());
+        assertEquals(new BigDecimal("400.00"), accountCaptor.getAllValues().get(0).getBalance());
+        assertEquals(new BigDecimal("600.00"), accountCaptor.getAllValues().get(1).getBalance());
     }
 
     @Test
@@ -383,17 +390,42 @@ class TransactionServiceTest {
     }
 
     @Test
-    void createTransferResolvesExternalIbanToNullToAccountId() {
+    void createTransferThrowsNotFoundWhenDestinationIbanDoesNotMatchAnAccount() {
         Account fromAccount = account(10L, 1L);
         when(accountRepository.findById(10L)).thenReturn(Optional.of(fromAccount));
         when(accountRepository.findAll()).thenReturn(List.of()); // IBAN not in our system
-        when(transactionRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
-        TransactionResponse response = transactionService.createTransfer(
+        assertThrows(ResourceNotFoundException.class, () -> transactionService.createTransfer(
                 new TransferTransactionRequest(10L, null, "NL99EXTR0000000001", new BigDecimal("25.00"), Channel.WEB, null),
-                customer(1L));
+                customer(1L)));
+    }
 
-        assertNull(response.toAccountId());
+    @Test
+    void createTransferRejectsCrossCustomerTransfersToNonCheckingAccounts() {
+        Account fromAccount = account(10L, 1L);
+        Account toAccount = account(20L, 2L);
+        toAccount.setAccountType(AccountType.SAVINGS);
+        when(accountRepository.findById(10L)).thenReturn(Optional.of(fromAccount));
+        when(accountRepository.findById(20L)).thenReturn(Optional.of(toAccount));
+
+        assertThrows(BadRequestException.class, () -> transactionService.createTransfer(
+                new TransferTransactionRequest(10L, 20L, null, new BigDecimal("25.00"), Channel.WEB, null),
+                customer(1L)));
+    }
+
+    @Test
+    void createTransferRejectsWhenDailyLimitWouldBeExceeded() {
+        Account fromAccount = account(10L, 1L);
+        Account toAccount = account(20L, 2L);
+        when(accountRepository.findById(10L)).thenReturn(Optional.of(fromAccount));
+        when(accountRepository.findById(20L)).thenReturn(Optional.of(toAccount));
+        Transaction existingTransaction = transaction(1L, fromAccount.getId(), toAccount.getId(), new BigDecimal("900.00"), TransactionType.TRANSFER);
+        existingTransaction.setTimestamp(LocalDateTime.now());
+        when(transactionRepository.findAll()).thenReturn(List.of(existingTransaction));
+
+        assertThrows(BadRequestException.class, () -> transactionService.createTransfer(
+                new TransferTransactionRequest(10L, 20L, null, new BigDecimal("200.00"), Channel.WEB, null),
+                customer(1L)));
     }
 
     @Test
