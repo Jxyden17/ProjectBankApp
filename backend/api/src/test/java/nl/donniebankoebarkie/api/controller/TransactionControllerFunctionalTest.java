@@ -18,6 +18,7 @@ import org.springframework.test.web.servlet.MvcResult;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasSize;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -224,6 +225,14 @@ class TransactionControllerFunctionalTest {
                         .content(transferRequest(fromAccountId, toAccountId, null, "100.00")))
                 .andExpect(status().isCreated())
                 .andExpect(header().string("Location", containsString("/api/transactions/")));
+
+        BigDecimal fromBalance = jdbcTemplate.queryForObject(
+                "SELECT balance FROM accounts WHERE id = ?", BigDecimal.class, fromAccountId);
+        BigDecimal toBalance = jdbcTemplate.queryForObject(
+                "SELECT balance FROM accounts WHERE id = ?", BigDecimal.class, toAccountId);
+
+        assertEquals(0, new BigDecimal("400.00").compareTo(fromBalance));
+        assertEquals(0, new BigDecimal("100.00").compareTo(toBalance));
     }
 
     @Test
@@ -267,6 +276,51 @@ class TransactionControllerFunctionalTest {
                         .content(transferRequest(fromAccountId, toAccountId, null, "100.00")))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value(400));
+    }
+
+    @Test
+    void createTransferRejectsWhenDailyLimitWouldBeExceeded() throws Exception {
+        Long customerId = createUser("customer.limit@example.com", "910000028", UserRole.CUSTOMER, true);
+        Long fromAccountId = createAccount(customerId, AccountType.CHECKING, "NL23INHO0000000023", new BigDecimal("500.00"));
+        Long toAccountId = createAccount(customerId, AccountType.SAVINGS, "NL24INHO0000000024", new BigDecimal("0.00"));
+        jdbcTemplate.update("""
+                INSERT INTO transactions (
+                    from_account_id, to_account_id, amount, currency,
+                    transaction_type, initiated_by_user_id, channel, timestamp
+                ) VALUES (?, ?, ?, 'EUR', 'TRANSFER', ?, 'WEB', NOW())
+                """, fromAccountId, toAccountId, new BigDecimal("900.00"), customerId);
+
+        mockMvc.perform(post("/api/transactions/transfers")
+                        .header("Authorization", "Bearer " + tokenFor(customerId, "customer.limit@example.com", UserRole.CUSTOMER))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(transferRequest(fromAccountId, toAccountId, null, "200.00")))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400));
+
+        BigDecimal fromBalance = jdbcTemplate.queryForObject(
+                "SELECT balance FROM accounts WHERE id = ?", BigDecimal.class, fromAccountId);
+        BigDecimal toBalance = jdbcTemplate.queryForObject(
+                "SELECT balance FROM accounts WHERE id = ?", BigDecimal.class, toAccountId);
+
+        assertEquals(0, new BigDecimal("500.00").compareTo(fromBalance));
+        assertEquals(0, new BigDecimal("0.00").compareTo(toBalance));
+    }
+
+    @Test
+    void listTransactionsFiltersCustomerHistoryByIban() throws Exception {
+        Long customerId = createUser("customer.iban@example.com", "910000029", UserRole.CUSTOMER, true);
+        Long checkingAccountId = createAccount(customerId, AccountType.CHECKING, "NL25INHO0000000025", new BigDecimal("500.00"));
+        Long savingsAccountId = createAccount(customerId, AccountType.SAVINGS, "NL26INHO0000000026", new BigDecimal("0.00"));
+
+        createTransaction(checkingAccountId, null, new BigDecimal("50.00"), "WITHDRAWAL");
+        createTransaction(savingsAccountId, null, new BigDecimal("75.00"), "WITHDRAWAL");
+
+        mockMvc.perform(get("/api/transactions")
+                        .param("iban", "NL25INHO0000000025")
+                        .header("Authorization", "Bearer " + tokenFor(customerId, "customer.iban@example.com", UserRole.CUSTOMER)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items", hasSize(1)))
+                .andExpect(jsonPath("$.items[0].fromAccountId").value(checkingAccountId));
     }
 
     // --- Create deposit ---
@@ -358,6 +412,16 @@ class TransactionControllerFunctionalTest {
     }
 
     private Long createAccount(Long userId, AccountType accountType, String iban, BigDecimal balance) {
+        return createAccount(userId, accountType, iban, balance, new BigDecimal("-500.00"), new BigDecimal("1000.00"));
+    }
+
+    private Long createAccount(
+            Long userId,
+            AccountType accountType,
+            String iban,
+            BigDecimal balance,
+            BigDecimal absoluteTransferLimit,
+            BigDecimal dailyTransferLimit) {
         LocalDateTime now = LocalDateTime.now();
         jdbcTemplate.update("""
                 INSERT INTO accounts (
@@ -367,7 +431,7 @@ class TransactionControllerFunctionalTest {
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 iban, userId, accountType.name(), balance,
-                new BigDecimal("-500.00"), new BigDecimal("1000.00"),
+                absoluteTransferLimit, dailyTransferLimit,
                 true, now, now);
         return jdbcTemplate.queryForObject("SELECT id FROM accounts WHERE iban = ?", Long.class, iban);
     }

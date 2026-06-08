@@ -12,6 +12,7 @@ import nl.donniebankoebarkie.api.exception.ResourceNotFoundException;
 import nl.donniebankoebarkie.api.mapper.TransactionMapper;
 import nl.donniebankoebarkie.api.model.Account;
 import nl.donniebankoebarkie.api.model.Transaction;
+import nl.donniebankoebarkie.api.model.enums.AccountType;
 import nl.donniebankoebarkie.api.model.enums.TransactionType;
 import nl.donniebankoebarkie.api.model.enums.UserRole;
 import nl.donniebankoebarkie.api.repository.interfaces.IAccountRepository;
@@ -55,24 +56,32 @@ public class TransactionService implements ITransactionService {
         int sanitizedSize = Math.min(Math.max(size, 1), 100);
         PageRequest pageRequest = PageRequest.of(sanitizedPage, sanitizedSize,
                 Sort.by(Sort.Order.desc("timestamp")));
-        
+
         final boolean isCustomer = authenticatedUser.role() != UserRole.EMPLOYEE;
         final List<Long> ownAccountIds = isCustomer
                 ? accountRepository.findByUserId(authenticatedUser.userId())
                 .stream().map(Account::getId).toList()
                 : null;
+        final String normalizedIban = iban == null || iban.isBlank() ? null : iban.trim();
 
         Specification<Transaction> spec = (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
 
             if (isCustomer) {
-                predicates.add(cb.or(
-                        root.get("fromAccountId").in(ownAccountIds),
-                        root.get("toAccountId").in(ownAccountIds)
-                ));
+                if (ownAccountIds.isEmpty()) {
+                    predicates.add(cb.disjunction());
+                } else {
+                    predicates.add(cb.or(
+                            root.get("fromAccountId").in(ownAccountIds),
+                            root.get("toAccountId").in(ownAccountIds)
+                    ));
+                }
             } else {
                 if (customerId != null) { predicates.add(cb.equal(root.get("initiatedByUserId"), customerId)); }
-                if (iban != null && !iban.isBlank()) { predicates.add(ibanPredicate(root, query, cb, iban)); }
+            }
+
+            if (normalizedIban != null) {
+                predicates.add(ibanPredicate(root, query, cb, normalizedIban));
             }
 
             if (startDate != null) { predicates.add(cb.greaterThanOrEqualTo(root.get("timestamp"), startDate.atStartOfDay())); }
@@ -118,6 +127,7 @@ public class TransactionService implements ITransactionService {
 
     @Override
     public TransactionResponse createTransfer(TransferTransactionRequest request, AuthenticatedUser authenticatedUser) {
+        validateMoneyMovementRequest(request.amount(), request.channel());
         validateTransferRequest(request);
 
         Account fromAccount = getActiveAccount(request.fromAccountId());
@@ -126,25 +136,47 @@ public class TransactionService implements ITransactionService {
             assertAccountOwnedByUser(fromAccount, authenticatedUser.userId());
         }
 
-        Long resolvedToAccountId = resolveToAccountId(request);
+        Account toAccount = resolveDestinationAccount(request);
+        if (fromAccount.getId().equals(toAccount.getId())) {
+            throw new BadRequestException("Source and destination accounts must be different.");
+        }
+
+        boolean crossUserTransfer = !fromAccount.getUserId().equals(toAccount.getUserId());
+        if (authenticatedUser.role() == UserRole.EMPLOYEE || crossUserTransfer) {
+            assertCheckingAccount(fromAccount, "Transfers between different customer accounts must use checking accounts.");
+            assertCheckingAccount(toAccount, "Transfers between different customer accounts must use checking accounts.");
+        }
+
+        enforceTransferLimits(fromAccount, request.amount());
+        LocalDateTime now = LocalDateTime.now();
+        applyDebit(fromAccount, request.amount(), now);
+        applyCredit(toAccount, request.amount(), now);
+
+        accountRepository.save(fromAccount);
+        accountRepository.save(toAccount);
 
         Transaction transaction = new Transaction();
         transaction.setFromAccountId(fromAccount.getId());
-        transaction.setToAccountId(resolvedToAccountId);
+        transaction.setToAccountId(toAccount.getId());
         transaction.setAmount(request.amount());
         transaction.setCurrency("EUR");
         transaction.setTransactionType(TransactionType.TRANSFER);
         transaction.setChannel(request.channel());
         transaction.setDescription(request.description());
         transaction.setInitiatedByUserId(authenticatedUser.userId());
-        transaction.setTimestamp(LocalDateTime.now());
+        transaction.setTimestamp(now);
 
         return TransactionMapper.toTransactionResponse(transactionRepository.save(transaction));
     }
 
     @Override
     public TransactionResponse createDeposit(DepositTransactionRequest request, AuthenticatedUser authenticatedUser) {
+        validateMoneyMovementRequest(request.amount(), request.channel());
         Account toAccount = getActiveAccount(request.toAccountId());
+        LocalDateTime now = LocalDateTime.now();
+
+        applyCredit(toAccount, request.amount(), now);
+        accountRepository.save(toAccount);
 
         Transaction transaction = new Transaction();
         transaction.setToAccountId(toAccount.getId());
@@ -154,18 +186,24 @@ public class TransactionService implements ITransactionService {
         transaction.setChannel(request.channel());
         transaction.setDescription(request.description());
         transaction.setInitiatedByUserId(authenticatedUser.userId());
-        transaction.setTimestamp(LocalDateTime.now());
+        transaction.setTimestamp(now);
 
         return TransactionMapper.toTransactionResponse(transactionRepository.save(transaction));
     }
 
     @Override
     public TransactionResponse createWithdrawal(WithdrawalTransactionRequest request, AuthenticatedUser authenticatedUser) {
+        validateMoneyMovementRequest(request.amount(), request.channel());
         Account fromAccount = getActiveAccount(request.fromAccountId());
 
         if (authenticatedUser.role() != UserRole.EMPLOYEE) {
             assertAccountOwnedByUser(fromAccount, authenticatedUser.userId());
         }
+
+        enforceTransferLimits(fromAccount, request.amount());
+        LocalDateTime now = LocalDateTime.now();
+        applyDebit(fromAccount, request.amount(), now);
+        accountRepository.save(fromAccount);
 
         Transaction transaction = new Transaction();
         transaction.setFromAccountId(fromAccount.getId());
@@ -175,7 +213,7 @@ public class TransactionService implements ITransactionService {
         transaction.setChannel(request.channel());
         transaction.setDescription(request.description());
         transaction.setInitiatedByUserId(authenticatedUser.userId());
-        transaction.setTimestamp(LocalDateTime.now());
+        transaction.setTimestamp(now);
 
         return TransactionMapper.toTransactionResponse(transactionRepository.save(transaction));
     }
@@ -193,6 +231,49 @@ public class TransactionService implements ITransactionService {
         if (!account.getUserId().equals(userId)) {
             throw new AccessDeniedException("You do not have access to this account.");
         }
+    }
+
+    private void assertCheckingAccount(Account account, String message) {
+        if (account.getAccountType() != AccountType.CHECKING) {
+            throw new BadRequestException(message);
+        }
+    }
+
+    private void validateMoneyMovementRequest(BigDecimal amount, nl.donniebankoebarkie.api.model.enums.Channel channel) {
+        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new BadRequestException("Amount must be greater than zero.");
+        }
+        if (channel == null) {
+            throw new BadRequestException("Channel is required.");
+        }
+    }
+
+    private void enforceTransferLimits(Account account, BigDecimal amount) {
+        BigDecimal projectedBalance = account.getBalance().subtract(amount);
+        if (projectedBalance.compareTo(account.getAbsoluteTransferLimit()) < 0) {
+            throw new BadRequestException("Transfer limit exceeded.");
+        }
+
+        BigDecimal dailyOutgoing = transactionRepository.findAll().stream()
+                .filter(transaction -> account.getId().equals(transaction.getFromAccountId()))
+                .filter(transaction -> transaction.getTimestamp() != null)
+                .filter(transaction -> transaction.getTimestamp().toLocalDate().equals(LocalDate.now()))
+                .map(Transaction::getAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        if (dailyOutgoing.add(amount).compareTo(account.getDailyTransferLimit()) > 0) {
+            throw new BadRequestException("Daily transfer limit exceeded.");
+        }
+    }
+
+    private void applyDebit(Account account, BigDecimal amount, LocalDateTime timestamp) {
+        account.setBalance(account.getBalance().subtract(amount));
+        account.setUpdatedAt(timestamp);
+    }
+
+    private void applyCredit(Account account, BigDecimal amount, LocalDateTime timestamp) {
+        account.setBalance(account.getBalance().add(amount));
+        account.setUpdatedAt(timestamp);
     }
 
     private void assertCustomerOwnsTransaction(Transaction transaction, Long userId) {
@@ -237,16 +318,20 @@ public class TransactionService implements ITransactionService {
         }
     }
 
-    private Long resolveToAccountId(TransferTransactionRequest request) {
+    private Account resolveDestinationAccount(TransferTransactionRequest request) {
         if (request.toAccountId() != null) {
-            Account toAccount = getActiveAccount(request.toAccountId());
-            return toAccount.getId();
+            return getActiveAccount(request.toAccountId());
         }
 
         return accountRepository.findAll().stream()
-                .filter(a -> a.getIban().equalsIgnoreCase(request.destinationIban()))
-                .map(Account::getId)
+                .filter(a -> a.getIban().equalsIgnoreCase(request.destinationIban().trim()))
                 .findFirst()
-                .orElse(null);
+                .map(account -> {
+                    if (!account.isActive()) {
+                        throw new BadRequestException("Account is not active.");
+                    }
+                    return account;
+                })
+                .orElseThrow(() -> new ResourceNotFoundException("Destination account not found."));
     }
 }

@@ -108,6 +108,13 @@
           {{ isSaving ? $t('common.loading') : $t('accountDetail.saveButton') }}
         </Button>
       </form>
+
+      <TransactionHistorySection
+        :title="$t('transactionHistory.accountTitle')"
+        :description="$t('transactionHistory.accountDescription')"
+        :scope-label="account.iban"
+        :base-params="{ iban: account.iban }"
+      />
     </template>
   </section>
 </template>
@@ -120,6 +127,7 @@ import PageHeader from '../components/ui/PageHeader.vue'
 import FeedbackBanner from '../components/ui/FeedbackBanner.vue'
 import TextInput from '../components/ui/TextInput.vue'
 import Button from '../components/ui/Button.vue'
+import TransactionHistorySection from '../components/transactions/TransactionHistorySection.vue'
 import { useAuth } from '../composables/useAuth'
 import * as accountService from '../services/accountService'
 

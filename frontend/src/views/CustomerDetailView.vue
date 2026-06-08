@@ -77,6 +77,15 @@
         </div>
       </dl>
     </article>
+
+    <TransactionHistorySection
+      v-if="customer"
+      :title="$t('transactionHistory.customerTitle')"
+      :description="$t('transactionHistory.customerDescription')"
+      :scope-label="`#${customer.id}`"
+      :base-params="{ customerId: customer.id }"
+      show-iban-filter
+    />
   </section>
 </template>
 
@@ -86,6 +95,7 @@ import { RouterLink } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import PageHeader from '../components/ui/PageHeader.vue'
 import FeedbackBanner from '../components/ui/FeedbackBanner.vue'
+import TransactionHistorySection from '../components/transactions/TransactionHistorySection.vue'
 import { useAuth } from '../composables/useAuth'
 import * as customerService from '../services/customerService'
 

@@ -1,18 +1,5 @@
 import { request } from './apiClient'
-
-// Builds a query string while skipping empty filter values.
-const buildQuery = (params = {}) => {
-  const query = new URLSearchParams()
-
-  Object.entries(params).forEach(([key, value]) => {
-    if (value !== undefined && value !== null && value !== '') {
-      query.set(key, value)
-    }
-  })
-
-  const queryString = query.toString()
-  return queryString ? `?${queryString}` : ''
-}
+import { buildQuery } from './queryString'
 
 // Loads the employee customer overview with filters and pagination.
 export const getCustomers = (params, accessToken) =>
@@ -37,5 +24,10 @@ export const approveCustomer = (customerId, payload, accessToken) =>
   request(`/customers/${customerId}/approval`, {
     method: 'PATCH',
     body: payload,
+    accessToken,
+  })
+
+export const lookupCustomerIban = (params, accessToken) =>
+  request(`/customers/lookup${buildQuery(params)}`, {
     accessToken,
   })
