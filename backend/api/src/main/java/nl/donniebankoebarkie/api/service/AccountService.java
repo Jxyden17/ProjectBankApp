@@ -2,6 +2,7 @@ package nl.donniebankoebarkie.api.service;
 
 import nl.donniebankoebarkie.api.dto.account.AccountOverviewResponse;
 import nl.donniebankoebarkie.api.dto.account.AccountResponse;
+import nl.donniebankoebarkie.api.dto.account.UpdateAccountRequest;
 import nl.donniebankoebarkie.api.exception.ResourceNotFoundException;
 import nl.donniebankoebarkie.api.mapper.AccountMapper;
 import nl.donniebankoebarkie.api.mapper.UserMapper;
@@ -16,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -74,5 +76,26 @@ public class AccountService implements IAccountService {
         }
 
         return AccountMapper.toAccountResponse(account);
+    }
+
+    @Override
+    @Transactional
+    public AccountResponse updateAccount(Long accountId, UpdateAccountRequest request) {
+        Account account = accountRepository.findById(accountId)
+                .orElseThrow(() -> new ResourceNotFoundException("Account was not found."));
+
+        // Partial update: only the fields present in the request are changed.
+        if (request.absoluteTransferLimit() != null) {
+            account.setAbsoluteTransferLimit(request.absoluteTransferLimit());
+        }
+        if (request.dailyTransferLimit() != null) {
+            account.setDailyTransferLimit(request.dailyTransferLimit());
+        }
+        if (request.isActive() != null) {
+            account.setActive(request.isActive());
+        }
+        account.setUpdatedAt(LocalDateTime.now());
+
+        return AccountMapper.toAccountResponse(accountRepository.save(account));
     }
 }

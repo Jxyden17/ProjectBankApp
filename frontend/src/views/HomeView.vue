@@ -135,12 +135,12 @@ const actionLinks = computed(() => {
     return [
       { to: '/customers', labelKey: 'nav.customers' },
       { to: '/customers/approvals', labelKey: 'home.approvalsAction' },
-      { to: '/accounts/directory', labelKey: 'nav.accountsDirectory' },
+      { to: '/accounts', labelKey: 'nav.accountsDirectory' },
     ]
   }
 
   return [
-    { to: '/accounts', labelKey: 'nav.accounts' },
+    { to: '/accounts/me', labelKey: 'nav.accounts' },
     { to: '/transfers', labelKey: 'nav.transfers' },
   ]
 })

@@ -59,7 +59,8 @@
     "checkingType": "Betaalrekening",
     "savingsType": "Spaarrekening",
     "emptyTitle": "Nog geen rekeningen",
-    "emptyDescription": "Je rekeningen verschijnen hier zodra een medewerker je profiel goedkeurt."
+    "emptyDescription": "Je rekeningen verschijnen hier zodra een medewerker je profiel goedkeurt.",
+    "viewDetails": "Details bekijken"
   },
   "accountsDirectory": {
     "label": "Medewerker",
@@ -75,7 +76,7 @@
     "resultsLabel": "Gevonden rekeningen: {count}"
   },
   "accountDetail": {
-    "label": "Medewerker",
+    "label": "Rekening",
     "title": "Rekeningdetails",
     "backButton": "Terug naar rekeningen",
     "ownerLabel": "Klant-ID",
@@ -83,7 +84,10 @@
     "statusActive": "Actief",
     "statusInactive": "Inactief",
     "createdAtLabel": "Aangemaakt",
-    "updatedAtLabel": "Bijgewerkt"
+    "updatedAtLabel": "Bijgewerkt",
+    "editTitle": "Rekening bijwerken",
+    "saveButton": "Wijzigingen opslaan",
+    "updateSuccess": "Rekening bijgewerkt."
   },
   "transfers": {
     "label": "Overboekingen",

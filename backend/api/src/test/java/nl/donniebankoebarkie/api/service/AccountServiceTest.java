@@ -2,6 +2,7 @@ package nl.donniebankoebarkie.api.service;
 
 import nl.donniebankoebarkie.api.dto.account.AccountOverviewResponse;
 import nl.donniebankoebarkie.api.dto.account.AccountResponse;
+import nl.donniebankoebarkie.api.dto.account.UpdateAccountRequest;
 import nl.donniebankoebarkie.api.exception.ResourceNotFoundException;
 import nl.donniebankoebarkie.api.model.Account;
 import nl.donniebankoebarkie.api.model.User;
@@ -22,6 +23,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -143,6 +145,45 @@ class AccountServiceTest {
         assertThrows(
                 ResourceNotFoundException.class,
                 () -> accountService.getAccountById(404L, 99L, UserRole.EMPLOYEE)
+        );
+    }
+
+    @Test
+    void updateAccountAppliesProvidedFieldsAndSaves() {
+        Account account = account(5L, 7L, AccountType.CHECKING, new BigDecimal("100.00"));
+        when(accountRepository.findById(5L)).thenReturn(Optional.of(account));
+        when(accountRepository.save(account)).thenReturn(account);
+
+        AccountResponse response = accountService.updateAccount(
+                5L,
+                new UpdateAccountRequest(new BigDecimal("-250.00"), new BigDecimal("1500.00"), false)
+        );
+
+        assertEquals(new BigDecimal("-250.00"), response.absoluteTransferLimit());
+        assertEquals(new BigDecimal("1500.00"), response.dailyTransferLimit());
+        assertFalse(response.isActive());
+    }
+
+    @Test
+    void updateAccountOnlyChangesProvidedFields() {
+        Account account = account(5L, 7L, AccountType.CHECKING, new BigDecimal("100.00"));
+        when(accountRepository.findById(5L)).thenReturn(Optional.of(account));
+        when(accountRepository.save(account)).thenReturn(account);
+
+        AccountResponse response = accountService.updateAccount(5L, new UpdateAccountRequest(null, null, false));
+
+        assertEquals(new BigDecimal("-500.00"), response.absoluteTransferLimit());
+        assertEquals(new BigDecimal("1000.00"), response.dailyTransferLimit());
+        assertFalse(response.isActive());
+    }
+
+    @Test
+    void updateAccountThrowsWhenAccountNotFound() {
+        when(accountRepository.findById(404L)).thenReturn(Optional.empty());
+
+        assertThrows(
+                ResourceNotFoundException.class,
+                () -> accountService.updateAccount(404L, new UpdateAccountRequest(null, null, true))
         );
     }
 
