@@ -307,6 +307,7 @@ import Button from '../components/ui/Button.vue'
 import { useAuth } from '../composables/useAuth'
 import * as accountService from '../services/accountService'
 import * as customerService from '../services/customerService'
+import { buildCustomerIbanLookupParams } from '../services/customerLookupParams'
 import * as transactionService from '../services/transactionService'
 
 const auth = useAuth()
@@ -601,13 +602,12 @@ const searchCustomerIban = async () => {
 
   try {
     const response = await customerService.lookupCustomerIban(
-      {
+      buildCustomerIbanLookupParams({
         firstName: lookupForm.firstName,
         lastName: lookupForm.lastName,
         page: 0,
         size: lookupPage.value.size,
-        sort: 'lastName,asc',
-      },
+      }),
       auth.accessToken.value,
     )
 
@@ -631,13 +631,12 @@ const goToLookupPage = async (nextPage) => {
 
   try {
     const response = await customerService.lookupCustomerIban(
-      {
+      buildCustomerIbanLookupParams({
         firstName: lookupForm.firstName,
         lastName: lookupForm.lastName,
         page: nextPage,
         size: lookupPage.value.size,
-        sort: 'lastName,asc',
-      },
+      }),
       auth.accessToken.value,
     )
 
