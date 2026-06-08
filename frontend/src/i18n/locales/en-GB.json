@@ -59,7 +59,8 @@
     "checkingType": "Checking account",
     "savingsType": "Savings account",
     "emptyTitle": "No accounts yet",
-    "emptyDescription": "Your accounts will appear here once an employee approves your profile."
+    "emptyDescription": "Your accounts will appear here once an employee approves your profile.",
+    "viewDetails": "View details"
   },
   "accountsDirectory": {
     "label": "Employee",
@@ -75,7 +76,7 @@
     "resultsLabel": "Accounts found: {count}"
   },
   "accountDetail": {
-    "label": "Employee",
+    "label": "Account",
     "title": "Account details",
     "backButton": "Back to accounts",
     "ownerLabel": "Customer ID",
@@ -83,7 +84,10 @@
     "statusActive": "Active",
     "statusInactive": "Inactive",
     "createdAtLabel": "Created",
-    "updatedAtLabel": "Updated"
+    "updatedAtLabel": "Updated",
+    "editTitle": "Update account",
+    "saveButton": "Save changes",
+    "updateSuccess": "Account updated."
   },
   "transfers": {
     "label": "Transfers",

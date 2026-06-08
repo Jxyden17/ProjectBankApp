@@ -1,7 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import HomeView from '../views/HomeView.vue'
+import AccountOverviewView from '../views/AccountOverviewView.vue'
 import AccountsView from '../views/AccountsView.vue'
-import AccountDirectoryView from '../views/AccountDirectoryView.vue'
 import AccountDetailView from '../views/AccountDetailView.vue'
 import TransfersView from '../views/TransfersView.vue'
 import CustomersView from '../views/CustomersView.vue'
@@ -13,19 +13,18 @@ import { useAuth } from '../composables/useAuth'
 
 const routes = [
   { path: '/', name: 'home', component: HomeView },
-  { path: '/accounts', name: 'accounts', component: AccountsView },
+  { path: '/accounts/me', name: 'accounts-overview', component: AccountOverviewView },
   {
-    path: '/accounts/directory',
-    name: 'accounts-directory',
-    component: AccountDirectoryView,
+    path: '/accounts',
+    name: 'accounts',
+    component: AccountsView,
     meta: { employeeOnly: true },
   },
   {
-    path: '/accounts/directory/:accountId',
+    path: '/accounts/:accountId',
     name: 'account-detail',
     component: AccountDetailView,
     props: true,
-    meta: { employeeOnly: true },
   },
   { path: '/transfers', name: 'transfers', component: TransfersView },
   {

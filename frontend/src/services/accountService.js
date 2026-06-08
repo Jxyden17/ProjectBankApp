@@ -14,3 +14,10 @@ export const getAccountById = (accountId, accessToken) =>
   request(`/accounts/${accountId}`, {
     accessToken,
   })
+
+export const updateAccount = (accountId, payload, accessToken) =>
+  request(`/accounts/${accountId}`, {
+    method: 'PATCH',
+    body: payload,
+    accessToken,
+  })
