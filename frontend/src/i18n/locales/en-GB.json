@@ -8,7 +8,7 @@
     "accounts": "Accounts",
     "transfers": "Transfers",
     "customers": "Customers",
-    "accountsDirectory": "All accounts",
+    "accountsDirectory": "Accounts",
     "signIn": "Sign in",
     "register": "Register",
     "logout": "Logout",
@@ -120,7 +120,13 @@
     "selectIbanButton": "Use IBAN",
     "previousPage": "Previous",
     "nextPage": "Next",
+    "closeButton": "Close",
+    "transferSuccessLabel": "Success",
+    "transferSuccessTitle": "Transfer successful",
     "transferSuccess": "Transfer completed successfully.",
+    "transferFailedLabel": "Failed",
+    "transferFailedTitle": "Transfer unsuccessful",
+    "transferFailed": "The transfer could not be completed.",
     "lookupEmptyMessage": "No IBANs matched that name search."
   },
   "transactionHistory": {

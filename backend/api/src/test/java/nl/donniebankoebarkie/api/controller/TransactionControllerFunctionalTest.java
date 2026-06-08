@@ -1,6 +1,5 @@
 package nl.donniebankoebarkie.api.controller;
 
-import com.jayway.jsonpath.JsonPath;
 import nl.donniebankoebarkie.api.model.User;
 import nl.donniebankoebarkie.api.model.enums.AccountType;
 import nl.donniebankoebarkie.api.model.enums.UserRole;
@@ -13,7 +12,6 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.MvcResult;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -82,8 +80,8 @@ class TransactionControllerFunctionalTest {
     @Test
     void createTransferRejectsRequestsWithoutBearerToken() throws Exception {
         mockMvc.perform(post("/api/transactions/transfers")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(transferRequest(1L, 2L, null, "50.00")))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(transferRequest(1L, 2L, null, "50.00")))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.status").value(401));
     }
@@ -95,14 +93,17 @@ class TransactionControllerFunctionalTest {
         Long customerId = createUser("customer.list@example.com", "910000001", UserRole.CUSTOMER, true);
         Long otherId = createUser("other.list@example.com", "910000002", UserRole.CUSTOMER, true);
 
-        Long customerAccountId = createAccount(customerId, AccountType.CHECKING, "NL01INHO0000000001", new BigDecimal("500.00"));
-        Long otherAccountId = createAccount(otherId, AccountType.CHECKING, "NL02INHO0000000002", new BigDecimal("500.00"));
+        Long customerAccountId = createAccount(customerId, AccountType.CHECKING, "NL01INHO0000000001",
+                new BigDecimal("500.00"));
+        Long otherAccountId = createAccount(otherId, AccountType.CHECKING, "NL02INHO0000000002",
+                new BigDecimal("500.00"));
 
         createTransaction(customerAccountId, null, new BigDecimal("50.00"), "WITHDRAWAL");
         createTransaction(otherAccountId, null, new BigDecimal("100.00"), "WITHDRAWAL");
 
         mockMvc.perform(get("/api/transactions")
-                        .header("Authorization", "Bearer " + tokenFor(customerId, "customer.list@example.com", UserRole.CUSTOMER)))
+                .header("Authorization",
+                        "Bearer " + tokenFor(customerId, "customer.list@example.com", UserRole.CUSTOMER)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.items", hasSize(1)))
                 .andExpect(jsonPath("$.items[0].fromAccountId").value(customerAccountId));
@@ -113,15 +114,17 @@ class TransactionControllerFunctionalTest {
         Long customerId = createUser("customer.param@example.com", "910000003", UserRole.CUSTOMER, true);
         Long otherId = createUser("other.param@example.com", "910000004", UserRole.CUSTOMER, true);
 
-        Long customerAccountId = createAccount(customerId, AccountType.CHECKING, "NL03INHO0000000003", new BigDecimal("500.00"));
+        Long customerAccountId = createAccount(customerId, AccountType.CHECKING, "NL03INHO0000000003",
+                new BigDecimal("500.00"));
         createAccount(otherId, AccountType.CHECKING, "NL04INHO0000000004", new BigDecimal("500.00"));
 
         createTransaction(customerAccountId, null, new BigDecimal("50.00"), "WITHDRAWAL");
 
         // Customer passes another user's ID — should still only see their own
         mockMvc.perform(get("/api/transactions")
-                        .param("customerId", otherId.toString())
-                        .header("Authorization", "Bearer " + tokenFor(customerId, "customer.param@example.com", UserRole.CUSTOMER)))
+                .param("customerId", otherId.toString())
+                .header("Authorization",
+                        "Bearer " + tokenFor(customerId, "customer.param@example.com", UserRole.CUSTOMER)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.items", hasSize(1)))
                 .andExpect(jsonPath("$.items[0].fromAccountId").value(customerAccountId));
@@ -133,14 +136,17 @@ class TransactionControllerFunctionalTest {
         Long customer1Id = createUser("cust1.list@example.com", "910000006", UserRole.CUSTOMER, true);
         Long customer2Id = createUser("cust2.list@example.com", "910000007", UserRole.CUSTOMER, true);
 
-        Long account1Id = createAccount(customer1Id, AccountType.CHECKING, "NL05INHO0000000005", new BigDecimal("500.00"));
-        Long account2Id = createAccount(customer2Id, AccountType.CHECKING, "NL06INHO0000000006", new BigDecimal("500.00"));
+        Long account1Id = createAccount(customer1Id, AccountType.CHECKING, "NL05INHO0000000005",
+                new BigDecimal("500.00"));
+        Long account2Id = createAccount(customer2Id, AccountType.CHECKING, "NL06INHO0000000006",
+                new BigDecimal("500.00"));
 
         createTransaction(account1Id, null, new BigDecimal("10.00"), "WITHDRAWAL");
         createTransaction(account2Id, null, new BigDecimal("20.00"), "WITHDRAWAL");
 
         mockMvc.perform(get("/api/transactions")
-                        .header("Authorization", "Bearer " + tokenFor(employeeId, "employee.list@example.com", UserRole.EMPLOYEE)))
+                .header("Authorization",
+                        "Bearer " + tokenFor(employeeId, "employee.list@example.com", UserRole.EMPLOYEE)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.items", hasSize(2)));
     }
@@ -151,7 +157,8 @@ class TransactionControllerFunctionalTest {
         createAccount(customerId, AccountType.CHECKING, "NL07INHO0000000007", new BigDecimal("500.00"));
 
         mockMvc.perform(get("/api/transactions")
-                        .header("Authorization", "Bearer " + tokenFor(customerId, "customer.empty@example.com", UserRole.CUSTOMER)))
+                .header("Authorization",
+                        "Bearer " + tokenFor(customerId, "customer.empty@example.com", UserRole.CUSTOMER)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.items", hasSize(0)))
                 .andExpect(jsonPath("$.page.totalElements").value(0));
@@ -162,11 +169,13 @@ class TransactionControllerFunctionalTest {
     @Test
     void getTransactionReturnsTransactionForOwningCustomer() throws Exception {
         Long customerId = createUser("customer.get@example.com", "910000009", UserRole.CUSTOMER, true);
-        Long accountId = createAccount(customerId, AccountType.CHECKING, "NL08INHO0000000008", new BigDecimal("500.00"));
+        Long accountId = createAccount(customerId, AccountType.CHECKING, "NL08INHO0000000008",
+                new BigDecimal("500.00"));
         Long transactionId = createTransaction(accountId, null, new BigDecimal("30.00"), "WITHDRAWAL");
 
         mockMvc.perform(get("/api/transactions/{id}", transactionId)
-                        .header("Authorization", "Bearer " + tokenFor(customerId, "customer.get@example.com", UserRole.CUSTOMER)))
+                .header("Authorization",
+                        "Bearer " + tokenFor(customerId, "customer.get@example.com", UserRole.CUSTOMER)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(transactionId))
                 .andExpect(jsonPath("$.amount").value(30.00))
@@ -179,11 +188,13 @@ class TransactionControllerFunctionalTest {
         Long otherId = createUser("other.noaccess@example.com", "910000011", UserRole.CUSTOMER, true);
 
         createAccount(customerId, AccountType.CHECKING, "NL09INHO0000000009", new BigDecimal("500.00"));
-        Long otherAccountId = createAccount(otherId, AccountType.CHECKING, "NL10INHO0000000010", new BigDecimal("500.00"));
+        Long otherAccountId = createAccount(otherId, AccountType.CHECKING, "NL10INHO0000000010",
+                new BigDecimal("500.00"));
         Long transactionId = createTransaction(otherAccountId, null, new BigDecimal("50.00"), "WITHDRAWAL");
 
         mockMvc.perform(get("/api/transactions/{id}", transactionId)
-                        .header("Authorization", "Bearer " + tokenFor(customerId, "customer.noaccess@example.com", UserRole.CUSTOMER)))
+                .header("Authorization",
+                        "Bearer " + tokenFor(customerId, "customer.noaccess@example.com", UserRole.CUSTOMER)))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.status").value(404));
     }
@@ -192,11 +203,13 @@ class TransactionControllerFunctionalTest {
     void getTransactionReturnsAnyTransactionForEmployee() throws Exception {
         Long employeeId = createUser("employee.get@example.com", "910000012", UserRole.EMPLOYEE, true);
         Long customerId = createUser("customer.fortransaction@example.com", "910000013", UserRole.CUSTOMER, true);
-        Long accountId = createAccount(customerId, AccountType.CHECKING, "NL11INHO0000000011", new BigDecimal("500.00"));
+        Long accountId = createAccount(customerId, AccountType.CHECKING, "NL11INHO0000000011",
+                new BigDecimal("500.00"));
         Long transactionId = createTransaction(accountId, null, new BigDecimal("40.00"), "WITHDRAWAL");
 
         mockMvc.perform(get("/api/transactions/{id}", transactionId)
-                        .header("Authorization", "Bearer " + tokenFor(employeeId, "employee.get@example.com", UserRole.EMPLOYEE)))
+                .header("Authorization",
+                        "Bearer " + tokenFor(employeeId, "employee.get@example.com", UserRole.EMPLOYEE)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(transactionId));
     }
@@ -206,7 +219,8 @@ class TransactionControllerFunctionalTest {
         Long employeeId = createUser("employee.missing@example.com", "910000014", UserRole.EMPLOYEE, true);
 
         mockMvc.perform(get("/api/transactions/{id}", 999999L)
-                        .header("Authorization", "Bearer " + tokenFor(employeeId, "employee.missing@example.com", UserRole.EMPLOYEE)))
+                .header("Authorization",
+                        "Bearer " + tokenFor(employeeId, "employee.missing@example.com", UserRole.EMPLOYEE)))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.status").value(404));
     }
@@ -216,13 +230,15 @@ class TransactionControllerFunctionalTest {
     @Test
     void createTransferReturnsCreatedAndLocationHeader() throws Exception {
         Long customerId = createUser("customer.transfer@example.com", "910000015", UserRole.CUSTOMER, true);
-        Long fromAccountId = createAccount(customerId, AccountType.CHECKING, "NL12INHO0000000012", new BigDecimal("500.00"));
+        Long fromAccountId = createAccount(customerId, AccountType.CHECKING, "NL12INHO0000000012",
+                new BigDecimal("500.00"));
         Long toAccountId = createAccount(customerId, AccountType.SAVINGS, "NL13INHO0000000013", new BigDecimal("0.00"));
 
         mockMvc.perform(post("/api/transactions/transfers")
-                        .header("Authorization", "Bearer " + tokenFor(customerId, "customer.transfer@example.com", UserRole.CUSTOMER))
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(transferRequest(fromAccountId, toAccountId, null, "100.00")))
+                .header("Authorization",
+                        "Bearer " + tokenFor(customerId, "customer.transfer@example.com", UserRole.CUSTOMER))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(transferRequest(fromAccountId, toAccountId, null, "100.00")))
                 .andExpect(status().isCreated())
                 .andExpect(header().string("Location", containsString("/api/transactions/")));
 
@@ -238,12 +254,14 @@ class TransactionControllerFunctionalTest {
     @Test
     void createTransferRejectsMissingDestination() throws Exception {
         Long customerId = createUser("customer.nodest@example.com", "910000016", UserRole.CUSTOMER, true);
-        Long fromAccountId = createAccount(customerId, AccountType.CHECKING, "NL14INHO0000000014", new BigDecimal("500.00"));
+        Long fromAccountId = createAccount(customerId, AccountType.CHECKING, "NL14INHO0000000014",
+                new BigDecimal("500.00"));
 
         mockMvc.perform(post("/api/transactions/transfers")
-                        .header("Authorization", "Bearer " + tokenFor(customerId, "customer.nodest@example.com", UserRole.CUSTOMER))
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(transferRequest(fromAccountId, null, null, "100.00")))
+                .header("Authorization",
+                        "Bearer " + tokenFor(customerId, "customer.nodest@example.com", UserRole.CUSTOMER))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(transferRequest(fromAccountId, null, null, "100.00")))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value(400));
     }
@@ -252,13 +270,15 @@ class TransactionControllerFunctionalTest {
     void createTransferRejectsTransferFromAccountOwnedByOtherCustomer() throws Exception {
         Long customerId = createUser("customer.stealing@example.com", "910000017", UserRole.CUSTOMER, true);
         Long otherId = createUser("other.victim@example.com", "910000018", UserRole.CUSTOMER, true);
-        Long otherAccountId = createAccount(otherId, AccountType.CHECKING, "NL15INHO0000000015", new BigDecimal("500.00"));
+        Long otherAccountId = createAccount(otherId, AccountType.CHECKING, "NL15INHO0000000015",
+                new BigDecimal("500.00"));
         Long toAccountId = createAccount(customerId, AccountType.SAVINGS, "NL16INHO0000000016", new BigDecimal("0.00"));
 
         mockMvc.perform(post("/api/transactions/transfers")
-                        .header("Authorization", "Bearer " + tokenFor(customerId, "customer.stealing@example.com", UserRole.CUSTOMER))
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(transferRequest(otherAccountId, toAccountId, null, "100.00")))
+                .header("Authorization",
+                        "Bearer " + tokenFor(customerId, "customer.stealing@example.com", UserRole.CUSTOMER))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(transferRequest(otherAccountId, toAccountId, null, "100.00")))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.status").value(403));
     }
@@ -266,14 +286,16 @@ class TransactionControllerFunctionalTest {
     @Test
     void createTransferRejectsInactiveFromAccount() throws Exception {
         Long customerId = createUser("customer.inactive@example.com", "910000019", UserRole.CUSTOMER, true);
-        Long fromAccountId = createAccount(customerId, AccountType.CHECKING, "NL17INHO0000000017", new BigDecimal("500.00"));
+        Long fromAccountId = createAccount(customerId, AccountType.CHECKING, "NL17INHO0000000017",
+                new BigDecimal("500.00"));
         Long toAccountId = createAccount(customerId, AccountType.SAVINGS, "NL18INHO0000000018", new BigDecimal("0.00"));
         jdbcTemplate.update("UPDATE accounts SET is_active = false WHERE id = ?", fromAccountId);
 
         mockMvc.perform(post("/api/transactions/transfers")
-                        .header("Authorization", "Bearer " + tokenFor(customerId, "customer.inactive@example.com", UserRole.CUSTOMER))
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(transferRequest(fromAccountId, toAccountId, null, "100.00")))
+                .header("Authorization",
+                        "Bearer " + tokenFor(customerId, "customer.inactive@example.com", UserRole.CUSTOMER))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(transferRequest(fromAccountId, toAccountId, null, "100.00")))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value(400));
     }
@@ -281,7 +303,8 @@ class TransactionControllerFunctionalTest {
     @Test
     void createTransferRejectsWhenDailyLimitWouldBeExceeded() throws Exception {
         Long customerId = createUser("customer.limit@example.com", "910000028", UserRole.CUSTOMER, true);
-        Long fromAccountId = createAccount(customerId, AccountType.CHECKING, "NL23INHO0000000023", new BigDecimal("500.00"));
+        Long fromAccountId = createAccount(customerId, AccountType.CHECKING, "NL23INHO0000000023",
+                new BigDecimal("500.00"));
         Long toAccountId = createAccount(customerId, AccountType.SAVINGS, "NL24INHO0000000024", new BigDecimal("0.00"));
         jdbcTemplate.update("""
                 INSERT INTO transactions (
@@ -291,9 +314,10 @@ class TransactionControllerFunctionalTest {
                 """, fromAccountId, toAccountId, new BigDecimal("900.00"), customerId);
 
         mockMvc.perform(post("/api/transactions/transfers")
-                        .header("Authorization", "Bearer " + tokenFor(customerId, "customer.limit@example.com", UserRole.CUSTOMER))
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(transferRequest(fromAccountId, toAccountId, null, "200.00")))
+                .header("Authorization",
+                        "Bearer " + tokenFor(customerId, "customer.limit@example.com", UserRole.CUSTOMER))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(transferRequest(fromAccountId, toAccountId, null, "200.00")))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value(400));
 
@@ -309,15 +333,18 @@ class TransactionControllerFunctionalTest {
     @Test
     void listTransactionsFiltersCustomerHistoryByIban() throws Exception {
         Long customerId = createUser("customer.iban@example.com", "910000029", UserRole.CUSTOMER, true);
-        Long checkingAccountId = createAccount(customerId, AccountType.CHECKING, "NL25INHO0000000025", new BigDecimal("500.00"));
-        Long savingsAccountId = createAccount(customerId, AccountType.SAVINGS, "NL26INHO0000000026", new BigDecimal("0.00"));
+        Long checkingAccountId = createAccount(customerId, AccountType.CHECKING, "NL25INHO0000000025",
+                new BigDecimal("500.00"));
+        Long savingsAccountId = createAccount(customerId, AccountType.SAVINGS, "NL26INHO0000000026",
+                new BigDecimal("0.00"));
 
         createTransaction(checkingAccountId, null, new BigDecimal("50.00"), "WITHDRAWAL");
         createTransaction(savingsAccountId, null, new BigDecimal("75.00"), "WITHDRAWAL");
 
         mockMvc.perform(get("/api/transactions")
-                        .param("iban", "NL25INHO0000000025")
-                        .header("Authorization", "Bearer " + tokenFor(customerId, "customer.iban@example.com", UserRole.CUSTOMER)))
+                .param("iban", "NL25INHO0000000025")
+                .header("Authorization",
+                        "Bearer " + tokenFor(customerId, "customer.iban@example.com", UserRole.CUSTOMER)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.items", hasSize(1)))
                 .andExpect(jsonPath("$.items[0].fromAccountId").value(checkingAccountId));
@@ -329,12 +356,14 @@ class TransactionControllerFunctionalTest {
     void createDepositReturnsCreatedAndLocationHeader() throws Exception {
         Long employeeId = createUser("employee.deposit@example.com", "910000020", UserRole.EMPLOYEE, true);
         Long customerId = createUser("customer.deposit@example.com", "910000021", UserRole.CUSTOMER, true);
-        Long toAccountId = createAccount(customerId, AccountType.CHECKING, "NL19INHO0000000019", new BigDecimal("0.00"));
+        Long toAccountId = createAccount(customerId, AccountType.CHECKING, "NL19INHO0000000019",
+                new BigDecimal("0.00"));
 
         mockMvc.perform(post("/api/transactions/deposits")
-                        .header("Authorization", "Bearer " + tokenFor(employeeId, "employee.deposit@example.com", UserRole.EMPLOYEE))
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(depositRequest(toAccountId, "200.00")))
+                .header("Authorization",
+                        "Bearer " + tokenFor(employeeId, "employee.deposit@example.com", UserRole.EMPLOYEE))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(depositRequest(toAccountId, "200.00")))
                 .andExpect(status().isCreated())
                 .andExpect(header().string("Location", containsString("/api/transactions/")));
     }
@@ -343,13 +372,15 @@ class TransactionControllerFunctionalTest {
     void createDepositRejectsInactiveToAccount() throws Exception {
         Long employeeId = createUser("employee.depinactive@example.com", "910000022", UserRole.EMPLOYEE, true);
         Long customerId = createUser("customer.depinactive@example.com", "910000023", UserRole.CUSTOMER, true);
-        Long toAccountId = createAccount(customerId, AccountType.CHECKING, "NL20INHO0000000020", new BigDecimal("0.00"));
+        Long toAccountId = createAccount(customerId, AccountType.CHECKING, "NL20INHO0000000020",
+                new BigDecimal("0.00"));
         jdbcTemplate.update("UPDATE accounts SET is_active = false WHERE id = ?", toAccountId);
 
         mockMvc.perform(post("/api/transactions/deposits")
-                        .header("Authorization", "Bearer " + tokenFor(employeeId, "employee.depinactive@example.com", UserRole.EMPLOYEE))
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(depositRequest(toAccountId, "100.00")))
+                .header("Authorization",
+                        "Bearer " + tokenFor(employeeId, "employee.depinactive@example.com", UserRole.EMPLOYEE))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(depositRequest(toAccountId, "100.00")))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value(400));
     }
@@ -359,12 +390,14 @@ class TransactionControllerFunctionalTest {
     @Test
     void createWithdrawalReturnsCreatedAndLocationHeader() throws Exception {
         Long customerId = createUser("customer.withdraw@example.com", "910000024", UserRole.CUSTOMER, true);
-        Long fromAccountId = createAccount(customerId, AccountType.CHECKING, "NL21INHO0000000021", new BigDecimal("500.00"));
+        Long fromAccountId = createAccount(customerId, AccountType.CHECKING, "NL21INHO0000000021",
+                new BigDecimal("500.00"));
 
         mockMvc.perform(post("/api/transactions/withdrawals")
-                        .header("Authorization", "Bearer " + tokenFor(customerId, "customer.withdraw@example.com", UserRole.CUSTOMER))
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(withdrawalRequest(fromAccountId, "75.00")))
+                .header("Authorization",
+                        "Bearer " + tokenFor(customerId, "customer.withdraw@example.com", UserRole.CUSTOMER))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(withdrawalRequest(fromAccountId, "75.00")))
                 .andExpect(status().isCreated())
                 .andExpect(header().string("Location", containsString("/api/transactions/")));
     }
@@ -373,12 +406,14 @@ class TransactionControllerFunctionalTest {
     void createWithdrawalRejectsWithdrawalFromAccountOwnedByOtherCustomer() throws Exception {
         Long customerId = createUser("customer.notown@example.com", "910000025", UserRole.CUSTOMER, true);
         Long otherId = createUser("other.owner@example.com", "910000026", UserRole.CUSTOMER, true);
-        Long otherAccountId = createAccount(otherId, AccountType.CHECKING, "NL22INHO0000000022", new BigDecimal("500.00"));
+        Long otherAccountId = createAccount(otherId, AccountType.CHECKING, "NL22INHO0000000022",
+                new BigDecimal("500.00"));
 
         mockMvc.perform(post("/api/transactions/withdrawals")
-                        .header("Authorization", "Bearer " + tokenFor(customerId, "customer.notown@example.com", UserRole.CUSTOMER))
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(withdrawalRequest(otherAccountId, "50.00")))
+                .header("Authorization",
+                        "Bearer " + tokenFor(customerId, "customer.notown@example.com", UserRole.CUSTOMER))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(withdrawalRequest(otherAccountId, "50.00")))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.status").value(403));
     }
@@ -388,9 +423,10 @@ class TransactionControllerFunctionalTest {
         Long customerId = createUser("customer.noaccwith@example.com", "910000027", UserRole.CUSTOMER, true);
 
         mockMvc.perform(post("/api/transactions/withdrawals")
-                        .header("Authorization", "Bearer " + tokenFor(customerId, "customer.noaccwith@example.com", UserRole.CUSTOMER))
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(withdrawalRequest(999999L, "50.00")))
+                .header("Authorization",
+                        "Bearer " + tokenFor(customerId, "customer.noaccwith@example.com", UserRole.CUSTOMER))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(withdrawalRequest(999999L, "50.00")))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.status").value(404));
     }

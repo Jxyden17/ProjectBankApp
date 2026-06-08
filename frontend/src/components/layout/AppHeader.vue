@@ -97,17 +97,12 @@ import { useRoute, useRouter } from 'vue-router'
 import Button from '../ui/Button.vue'
 import LanguageSwitcher from '../ui/LanguageSwitcher.vue'
 import { useAuth } from '../../composables/useAuth'
+import { DEFAULT_NAV_LINKS, visibleNavLinks } from '../../navigation/navLinks'
 
 const props = defineProps({
   links: {
     type: Array,
-    default: () => [
-      { labelKey: 'nav.home', to: '/' },
-      { labelKey: 'nav.accounts', to: '/accounts/me' },
-      { labelKey: 'nav.transfers', to: '/transfers' },
-      { labelKey: 'nav.customers', to: '/customers', employeeOnly: true },
-      { labelKey: 'nav.accountsDirectory', to: '/accounts', employeeOnly: true },
-    ],
+    default: () => DEFAULT_NAV_LINKS,
   },
 })
 
@@ -116,12 +111,9 @@ const router = useRouter()
 const auth = useAuth()
 const isLoggingOut = ref(false)
 const visibleLinks = computed(() =>
-  props.links.filter((link) => {
-    if (auth.isRestrictedCustomer.value) {
-      return link.to === '/'
-    }
-
-    return !link.employeeOnly || auth.isEmployee.value
+  visibleNavLinks(props.links, {
+    isEmployee: auth.isEmployee.value,
+    isRestrictedCustomer: auth.isRestrictedCustomer.value,
   }),
 )
 

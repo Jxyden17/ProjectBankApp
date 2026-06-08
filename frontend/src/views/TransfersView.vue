@@ -6,7 +6,6 @@
       :description="$t('transfers.description')"
     />
 
-    <FeedbackBanner :message="successMessage" tone="success" />
     <FeedbackBanner :message="errorMessage" tone="error" />
 
     <div
@@ -294,6 +293,16 @@
         </form>
       </article>
     </template>
+
+    <ResultModal
+      :open="transferResult.isOpen"
+      :tone="transferResult.tone"
+      :label="transferResult.label"
+      :title="transferResult.title"
+      :message="transferResult.message"
+      :close-label="$t('transfers.closeButton')"
+      @close="closeTransferResult"
+    />
   </section>
 </template>
 
@@ -304,9 +313,11 @@ import PageHeader from '../components/ui/PageHeader.vue'
 import FeedbackBanner from '../components/ui/FeedbackBanner.vue'
 import TextInput from '../components/ui/TextInput.vue'
 import Button from '../components/ui/Button.vue'
+import ResultModal from '../components/ui/ResultModal.vue'
 import { useAuth } from '../composables/useAuth'
 import * as accountService from '../services/accountService'
 import * as customerService from '../services/customerService'
+import { buildCustomerIbanLookupParams } from '../services/customerLookupParams'
 import * as transactionService from '../services/transactionService'
 
 const auth = useAuth()
@@ -316,7 +327,6 @@ const ownAccounts = ref([])
 const employeeAccounts = ref([])
 const isLoadingAccounts = ref(false)
 const errorMessage = ref('')
-const successMessage = ref('')
 
 const lookupForm = reactive({
   firstName: '',
@@ -356,6 +366,13 @@ const employeeTransferForm = reactive({
 const isSubmittingOwnTransfer = ref(false)
 const isSubmittingExternalTransfer = ref(false)
 const isSubmittingEmployeeTransfer = ref(false)
+const transferResult = reactive({
+  isOpen: false,
+  tone: 'success',
+  label: '',
+  title: '',
+  message: '',
+})
 
 const isEmployee = computed(() => auth.isEmployee.value)
 
@@ -399,7 +416,36 @@ const employeeAccountOptionLabel = (account) =>
 
 const clearFeedback = () => {
   errorMessage.value = ''
-  successMessage.value = ''
+}
+
+const showTransferResult = ({ tone, label, title, message }) => {
+  transferResult.tone = tone
+  transferResult.label = label
+  transferResult.title = title
+  transferResult.message = message
+  transferResult.isOpen = true
+}
+
+const showTransferSuccess = () => {
+  showTransferResult({
+    tone: 'success',
+    label: t('transfers.transferSuccessLabel'),
+    title: t('transfers.transferSuccessTitle'),
+    message: t('transfers.transferSuccess'),
+  })
+}
+
+const showTransferFailure = (message) => {
+  showTransferResult({
+    tone: 'error',
+    label: t('transfers.transferFailedLabel'),
+    title: t('transfers.transferFailedTitle'),
+    message: message || t('transfers.transferFailed'),
+  })
+}
+
+const closeTransferResult = () => {
+  transferResult.isOpen = false
 }
 
 const clearLookupFeedback = () => {
@@ -522,12 +568,12 @@ const submitOwnTransfer = async () => {
 
     ownTransferForm.amount = ''
     ownTransferForm.description = ''
-    successMessage.value = t('transfers.transferSuccess')
+    showTransferSuccess()
     await reloadBalances().catch((refreshError) => {
       errorMessage.value = refreshError.message
     })
   } catch (error) {
-    errorMessage.value = error.message
+    showTransferFailure(error.message)
   } finally {
     isSubmittingOwnTransfer.value = false
   }
@@ -553,12 +599,12 @@ const submitOwnExternalTransfer = async () => {
 
     externalTransferForm.amount = ''
     externalTransferForm.description = ''
-    successMessage.value = t('transfers.transferSuccess')
+    showTransferSuccess()
     await reloadBalances().catch((refreshError) => {
       errorMessage.value = refreshError.message
     })
   } catch (error) {
-    errorMessage.value = error.message
+    showTransferFailure(error.message)
   } finally {
     isSubmittingExternalTransfer.value = false
   }
@@ -584,12 +630,12 @@ const submitEmployeeTransfer = async () => {
 
     employeeTransferForm.amount = ''
     employeeTransferForm.description = ''
-    successMessage.value = t('transfers.transferSuccess')
+    showTransferSuccess()
     await reloadBalances().catch((refreshError) => {
       errorMessage.value = refreshError.message
     })
   } catch (error) {
-    errorMessage.value = error.message
+    showTransferFailure(error.message)
   } finally {
     isSubmittingEmployeeTransfer.value = false
   }
@@ -601,13 +647,12 @@ const searchCustomerIban = async () => {
 
   try {
     const response = await customerService.lookupCustomerIban(
-      {
+      buildCustomerIbanLookupParams({
         firstName: lookupForm.firstName,
         lastName: lookupForm.lastName,
         page: 0,
         size: lookupPage.value.size,
-        sort: 'lastName,asc',
-      },
+      }),
       auth.accessToken.value,
     )
 
@@ -631,13 +676,12 @@ const goToLookupPage = async (nextPage) => {
 
   try {
     const response = await customerService.lookupCustomerIban(
-      {
+      buildCustomerIbanLookupParams({
         firstName: lookupForm.firstName,
         lastName: lookupForm.lastName,
         page: nextPage,
         size: lookupPage.value.size,
-        sort: 'lastName,asc',
-      },
+      }),
       auth.accessToken.value,
     )
 

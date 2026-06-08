@@ -1,6 +1,5 @@
 package nl.donniebankoebarkie.api.model;
 
-import com.fasterxml.jackson.annotation.JsonAnyGetter;
 import jakarta.persistence.*;
 import nl.donniebankoebarkie.api.model.enums.Channel;
 import nl.donniebankoebarkie.api.model.enums.TransactionType;
