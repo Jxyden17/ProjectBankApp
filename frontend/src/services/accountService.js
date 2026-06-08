@@ -1,12 +1,13 @@
 import { request } from './apiClient'
+import { buildQuery } from './queryString'
 
 export const getOwnAccounts = (accessToken) =>
   request('/accounts/me', {
     accessToken,
   })
 
-export const listAccounts = (accessToken) =>
-  request('/accounts', {
+export const listAccounts = (accessToken, params = {}) =>
+  request(`/accounts${buildQuery(params)}`, {
     accessToken,
   })
 

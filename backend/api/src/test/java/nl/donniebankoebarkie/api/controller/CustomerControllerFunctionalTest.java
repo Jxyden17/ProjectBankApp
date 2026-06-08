@@ -175,6 +175,7 @@ class CustomerControllerFunctionalTest {
         Long matchingCustomerId = createUser("jane.smith@example.com", "900000029", UserRole.CUSTOMER, true, "Jane", "Smith");
         Long hiddenCustomerId = createUser("jane.hidden@example.com", "900000030", UserRole.CUSTOMER, true, "Jane", "Hidden");
         createAccount(matchingCustomerId, "NL12INHO0001234567", true);
+        createAccount(matchingCustomerId, "NL13INHO0001234568", true, "SAVINGS");
         createAccount(hiddenCustomerId, "NL99INHO0009999999", true);
         createAccount(matchingCustomerId, "NL34INHO0007654321", false);
 
@@ -362,6 +363,10 @@ class CustomerControllerFunctionalTest {
     }
 
     private void createAccount(Long userId, String iban, boolean active) {
+        createAccount(userId, iban, active, "CHECKING");
+    }
+
+    private void createAccount(Long userId, String iban, boolean active, String accountType) {
         LocalDateTime now = LocalDateTime.now();
         jdbcTemplate.update("""
                 INSERT INTO accounts (
@@ -378,7 +383,7 @@ class CustomerControllerFunctionalTest {
                 """,
                 iban,
                 userId,
-                "CHECKING",
+                accountType,
                 0,
                 -500,
                 1000,
