@@ -120,7 +120,13 @@
     "selectIbanButton": "Gebruik IBAN",
     "previousPage": "Vorige",
     "nextPage": "Volgende",
+    "closeButton": "Sluiten",
+    "transferSuccessLabel": "Gelukt",
+    "transferSuccessTitle": "Overboeking gelukt",
     "transferSuccess": "Overboeking succesvol uitgevoerd.",
+    "transferFailedLabel": "Mislukt",
+    "transferFailedTitle": "Overboeking niet gelukt",
+    "transferFailed": "De overboeking kon niet worden uitgevoerd.",
     "lookupEmptyMessage": "Geen IBANs gevonden voor deze naamzoekopdracht."
   },
   "transactionHistory": {
