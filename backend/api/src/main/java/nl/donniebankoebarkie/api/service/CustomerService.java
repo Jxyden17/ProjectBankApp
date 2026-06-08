@@ -101,7 +101,8 @@ public class CustomerService implements ICustomerService {
         String sanitizedLastName = requireSearchValue(lastName, "Last name is required.");
 
         Page<Account> lookupPage = accountRepository
-                .findByActiveTrueAndUser_RoleAndUser_FirstNameIgnoreCaseAndUser_LastNameIgnoreCase(
+                .findByActiveTrueAndAccountTypeAndUser_RoleAndUser_FirstNameIgnoreCaseAndUser_LastNameIgnoreCase(
+                        AccountType.CHECKING,
                         UserRole.CUSTOMER,
                         sanitizedFirstName,
                         sanitizedLastName,
