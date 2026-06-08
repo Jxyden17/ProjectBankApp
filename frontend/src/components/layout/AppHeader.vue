@@ -105,8 +105,8 @@ const props = defineProps({
       { labelKey: 'nav.home', to: '/' },
       { labelKey: 'nav.accounts', to: '/accounts/me' },
       { labelKey: 'nav.transfers', to: '/transfers' },
+      { labelKey: 'nav.customers', to: '/customers', employeeOnly: true },
       { labelKey: 'nav.accountsDirectory', to: '/accounts', employeeOnly: true },
-      { labelKey: 'nav.approvals', to: '/customers/pending', employeeOnly: true },
     ],
   },
 })
@@ -125,7 +125,7 @@ const visibleLinks = computed(() =>
   }),
 )
 
-const isActive = (path) => route.path === path
+const isActive = (path) => (path === '/customers' ? route.path.startsWith('/customers') : route.path === path)
 
 const signOut = async () => {
   isLoggingOut.value = true

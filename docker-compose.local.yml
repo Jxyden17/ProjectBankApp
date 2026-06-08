@@ -24,6 +24,7 @@ services:
       db:
         condition: service_healthy
     environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev}
       SPRING_DATASOURCE_URL: jdbc:mariadb://db:3306/${MARIADB_DATABASE}
       SPRING_DATASOURCE_USERNAME: ${MARIADB_USER}
       SPRING_DATASOURCE_PASSWORD: ${MARIADB_PASSWORD}

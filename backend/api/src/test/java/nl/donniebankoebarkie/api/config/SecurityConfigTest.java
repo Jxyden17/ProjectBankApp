@@ -1,9 +1,7 @@
 package nl.donniebankoebarkie.api.config;
 
-import nl.donniebankoebarkie.api.exception.ApiErrorResponseFactory;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import tools.jackson.databind.ObjectMapper;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -11,10 +9,7 @@ class SecurityConfigTest {
 
     @Test
     void passwordEncoderUsesOwapsMinimumArgon2Parameters() {
-        PasswordEncoder passwordEncoder = new SecurityConfig(
-                new ApiErrorResponseFactory(),
-                new ObjectMapper()
-        ).passwordEncoder();
+        PasswordEncoder passwordEncoder = new SecurityConfig().passwordEncoder();
 
         String encodedPassword = passwordEncoder.encode("welkom123");
 

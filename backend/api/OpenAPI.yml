@@ -636,11 +636,6 @@ paths:
       responses:
         '201':
           description: Customer registered successfully
-          headers:
-            Location:
-              description: URL of the created customer resource
-              schema:
-                type: string
           content:
             application/json:
               schema:

@@ -4,6 +4,8 @@ import AccountOverviewView from '../views/AccountOverviewView.vue'
 import AccountsView from '../views/AccountsView.vue'
 import AccountDetailView from '../views/AccountDetailView.vue'
 import TransfersView from '../views/TransfersView.vue'
+import CustomersView from '../views/CustomersView.vue'
+import CustomerDetailView from '../views/CustomerDetailView.vue'
 import PendingCustomersView from '../views/PendingCustomersView.vue'
 import LoginView from '../views/LoginView.vue'
 import RegisterView from '../views/RegisterView.vue'
@@ -26,9 +28,23 @@ const routes = [
   },
   { path: '/transfers', name: 'transfers', component: TransfersView },
   {
-    path: '/customers/pending',
-    name: 'pending-customers',
+    path: '/customers',
+    name: 'customers',
+    component: CustomersView,
+    meta: { employeeOnly: true },
+  },
+  {
+    path: '/customers/approvals',
+    name: 'customer-approvals',
     component: PendingCustomersView,
+    meta: { employeeOnly: true },
+  },
+  { path: '/customers/pending', redirect: '/customers/approvals' },
+  {
+    path: '/customers/:customerId',
+    name: 'customer-detail',
+    component: CustomerDetailView,
+    props: true,
     meta: { employeeOnly: true },
   },
   { path: '/login', name: 'login', component: LoginView, meta: { public: true } },

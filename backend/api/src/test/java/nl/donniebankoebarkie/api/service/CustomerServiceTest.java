@@ -1,5 +1,6 @@
 package nl.donniebankoebarkie.api.service;
 
+import nl.donniebankoebarkie.api.dto.customer.request.CustomerSearchRequest;
 import nl.donniebankoebarkie.api.dto.customer.request.UpdateCustomerApprovalRequest;
 import nl.donniebankoebarkie.api.exception.BadRequestException;
 import nl.donniebankoebarkie.api.exception.ConflictException;
@@ -19,6 +20,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -29,7 +31,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -49,12 +50,18 @@ class CustomerServiceTest {
     private CustomerService customerService;
 
     @Test
-    void listPendingCustomersSanitizesPagingAndMapsPageMetadata() {
+    void listPendingCustomersMapsPageMetadata() {
         User pendingCustomer = pendingCustomer(10L);
-        when(authRepository.findPendingCustomers(eq(UserRole.CUSTOMER), any(Pageable.class)))
+        when(authRepository.findAll(
+                org.mockito.ArgumentMatchers.<Specification<User>>any(),
+                any(Pageable.class)
+        ))
                 .thenReturn(new PageImpl<>(List.of(pendingCustomer), PageRequest.of(0, 20), 1));
 
-        var response = customerService.listPendingCustomers(-4, 0);
+        var response = customerService.listPendingCustomers(
+                new CustomerSearchRequest(null, null, null, null),
+                PageRequest.of(0, 20)
+        );
 
         assertEquals(1, response.items().size());
         assertEquals(pendingCustomer.getId(), response.items().getFirst().id());
